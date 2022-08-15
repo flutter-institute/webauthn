@@ -5,7 +5,10 @@ class CredTypePubKeyAlgoPair extends Equatable {
   final PublicKeyCredentialType credType;
   final int pubKeyAlgo;
 
-  const CredTypePubKeyAlgoPair(this.credType, this.pubKeyAlgo);
+  const CredTypePubKeyAlgoPair({
+    required this.credType,
+    required this.pubKeyAlgo,
+  });
 
   @override
   String toString() => '($credType, $pubKeyAlgo)';

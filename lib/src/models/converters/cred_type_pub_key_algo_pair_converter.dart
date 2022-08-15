@@ -9,7 +9,9 @@ class CredTypePubKeyAlgoPairConverter
 
   @override
   CredTypePubKeyAlgoPair fromJson(List json) => CredTypePubKeyAlgoPair(
-      PublicKeyCredentialType.fromString(json[0]), json[1]);
+        credType: PublicKeyCredentialType.fromString(json[0]),
+        pubKeyAlgo: json[1],
+      );
 
   @override
   List toJson(CredTypePubKeyAlgoPair object) =>

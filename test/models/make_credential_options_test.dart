@@ -27,7 +27,8 @@ void main() {
       requireUserPresence: false,
       requireUserVerification: true,
       credTypesAndPubKeyAlgs: [
-        const CredTypePubKeyAlgoPair(PublicKeyCredentialType.publicKey, -7),
+        const CredTypePubKeyAlgoPair(
+            credType: PublicKeyCredentialType.publicKey, pubKeyAlgo: -7),
       ],
       excludeCredentialDescriptorList: [
         PublicKeyCredentialDescriptor(

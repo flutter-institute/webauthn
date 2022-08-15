@@ -9,8 +9,11 @@ class Authenticator {
   static const shaLength = c.shaLength;
   static const authenticationDataLength = c.authenticationDataLength;
 
-  static const es256cose =
-      CredTypePubKeyAlgoPair(PublicKeyCredentialType.publicKey, -7);
+  // ignore: constant_identifier_names
+  static const ES256COSE = CredTypePubKeyAlgoPair(
+    credType: PublicKeyCredentialType.publicKey,
+    pubKeyAlgo: -7,
+  );
 
   Authenticator(bool authenticationRequired, bool strongboxRequried) {
     // TODO create dependencies

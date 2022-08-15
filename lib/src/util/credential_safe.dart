@@ -15,23 +15,24 @@ import '../db/db.dart';
 /// These keys can optionally be protected with "Strongbox keymaster"
 /// protection and user authentication on supported hardware.
 class CredentialSafe {
-  CredentialSafe(
-      {this.authenticationRequired = true,
-      this.strongboxRequired = true,
-      this.db = const DB(),
-      FlutterSecureStorage? storageInst})
-      : _storage = storageInst ?? const FlutterSecureStorage();
+  CredentialSafe({
+    this.authenticationRequired = true,
+    this.strongboxRequired = true,
+    this.db = const DB(),
+    FlutterSecureStorage? storageInst,
+  }) : _storage = storageInst ?? const FlutterSecureStorage();
 
   final bool authenticationRequired;
   final bool strongboxRequired;
   final FlutterSecureStorage _storage;
   final DB db;
 
-  final _keyCurve = curves.p256;
+  static final keyCurve = curves.p256;
+  static final keyAlgo = algorithms.signing.ecdsa.sha256;
 
   /// Generate a new ES256 KeyPair and store it to our secure storage using the given alias
   Future<KeyPair> _generateNewES256KeyPair(String alias) async {
-    final keypair = KeyPair.generateEc(_keyCurve);
+    final keypair = KeyPair.generateEc(keyCurve);
     final pk = keypair.privateKey as EcPrivateKey;
     final pub = keypair.publicKey as EcPublicKey;
 
@@ -57,12 +58,12 @@ class CredentialSafe {
     if (encoded != null) {
       final cborList = cbor.decode(base64.decode(encoded)) as CborList;
       final eccPrivateKey = cborList[0].toObject() as BigInt;
-      final pk = EcPrivateKey(eccPrivateKey: eccPrivateKey, curve: _keyCurve);
+      final pk = EcPrivateKey(eccPrivateKey: eccPrivateKey, curve: keyCurve);
 
       final xCoordinate = cborList[1].toObject() as BigInt;
       final yCoordinate = cborList[2].toObject() as BigInt;
       final pub = EcPublicKey(
-          xCoordinate: xCoordinate, yCoordinate: yCoordinate, curve: _keyCurve);
+          xCoordinate: xCoordinate, yCoordinate: yCoordinate, curve: keyCurve);
 
       return KeyPair(publicKey: pub, privateKey: pk);
     }
