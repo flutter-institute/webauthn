@@ -1,0 +1,34 @@
+name: webauthn
+description: A plugin implementing the WebAuthn authenticator model
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ">=2.17.6 <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cbor: ^5.1.0
+  crypto_keys: ^0.3.0
+  equatable: ^2.0.3
+  flutter_secure_storage: ^5.1.0
+  json_annotation: ^4.6.0
+  local_auth: ^2.1.2
+  path_provider: ^2.0.11
+  sqflite: ^2.0.3+1
+  path: ^1.8.1
+  hex: ^0.2.0
+  logger: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  build_runner: ^2.2.0
+  json_serializable: ^6.3.1
+  mockito: 5.2.0 # Mockito 5.3.0 is incompatible with isar. They require different version of the analyzer. Mockito 5.2.0 solves this issue.
+  sqflite_common_ffi: ^2.1.1+1
+
+flutter:
