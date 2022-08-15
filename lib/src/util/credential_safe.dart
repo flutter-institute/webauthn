@@ -122,7 +122,7 @@ class CredentialSafe {
   /// Look up the key using the [alias]
   Future<bool?> keyRequiresVerification(String alias) async {
     final cred =
-        await db.execute((db) => CredentialSchema(db).getByKeyAlais(alias));
+        await db.execute((db) => CredentialSchema(db).getByKeyAlias(alias));
     return cred?.authRequired;
   }
 

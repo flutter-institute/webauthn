@@ -46,9 +46,9 @@ class DB {
 
   @visibleForTesting
   Future<void> deleteDbFile() async {
-    final file = File(await _getDbPath());
-    if (await file.exists()) {
-      await file.delete();
+    final dbPath = await _getDbPath();
+    if (await databaseExists(dbPath)) {
+      await deleteDatabase(dbPath);
     }
   }
 

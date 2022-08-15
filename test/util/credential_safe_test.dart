@@ -17,8 +17,8 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   sqfliteTestInit();
 
-  setUp(() {
-    const DB().deleteDbFile();
+  setUp(() async {
+    await const DB().deleteDbFile();
   });
 
   test('saves and retrieves a key', () async {

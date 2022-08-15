@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:equatable/equatable.dart';
+
 import '../helpers/random.dart';
 import 'db.dart';
 
@@ -29,36 +31,70 @@ final allColumns = [
   colStrongboxRequired,
 ];
 
-class Credential {
-  int? id;
-  late String rpId;
-  late String username;
-  late Uint8List userHandle;
-  late String keyPairAlias;
-  late Uint8List keyId;
-  late int keyUseCounter;
-  late bool authRequired;
-  late bool strongboxRequired;
+class Credential extends Equatable {
+  late final int? id;
+  late final String rpId;
+  late final String username;
+  late final Uint8List userHandle;
+  late final String keyPairAlias;
+  late final Uint8List keyId;
+  late final int keyUseCounter;
+  late final bool authRequired;
+  late final bool strongboxRequired;
 
-  Credential.copy(Credential orig) {
-    id = orig.id;
-    rpId = orig.rpId;
-    username = orig.username;
-    userHandle = orig.userHandle;
-    keyPairAlias = orig.keyPairAlias;
-    keyId = orig.keyId;
-    keyUseCounter = orig.keyUseCounter;
-    authRequired = orig.authRequired;
-    strongboxRequired = orig.strongboxRequired;
-  }
+  // Internal constructor
+  Credential._(
+    this.id,
+    this.rpId,
+    this.username,
+    this.userHandle,
+    this.keyPairAlias,
+    this.keyId,
+    this.keyUseCounter,
+    this.authRequired,
+    this.strongboxRequired,
+  );
 
-  Credential.forKey(this.rpId, this.userHandle, this.username,
-      this.authRequired, this.strongboxRequired) {
+  /// Copy a credential, overwriting the specified fields
+  Credential copyWith({
+    int? id,
+    String? rpId,
+    String? username,
+    Uint8List? userHandle,
+    String? keyPairAlias,
+    Uint8List? keyId,
+    int? keyUseCounter,
+    bool? authRequired,
+    bool? strongboxRequired,
+  }) =>
+      Credential._(
+        id ?? this.id,
+        rpId = rpId ?? this.rpId,
+        username = username ?? this.username,
+        userHandle = userHandle ?? this.userHandle,
+        keyPairAlias = keyPairAlias ?? this.keyPairAlias,
+        keyId = keyId ?? this.keyId,
+        keyUseCounter = keyUseCounter ?? this.keyUseCounter,
+        authRequired = authRequired ?? this.authRequired,
+        strongboxRequired = strongboxRequired ?? this.strongboxRequired,
+      );
+
+  /// Create a credential for use with as a new key.
+  /// The basic information is passed and the rest of the key information
+  /// is programmatically generated in the way we need for a key pair.
+  Credential.forKey(
+    this.rpId,
+    this.userHandle,
+    this.username,
+    this.authRequired,
+    this.strongboxRequired,
+  ) : id = null {
     keyId = RandomHelper.nextBytes(32);
     keyPairAlias = _keyPairPrefix + base64.encode(keyId.toList());
     keyUseCounter = 1;
   }
 
+  /// Create a credential from a map (used for db interop)
   Credential.fromMap(Map<String, dynamic> map) {
     id = map[colId];
     rpId = map[colRpId];
@@ -71,6 +107,7 @@ class Credential {
     strongboxRequired = map[colAuthRequired] == 1;
   }
 
+  /// Serialize a credential to a Map (user for db interop)
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
       colRpId: rpId,
@@ -87,15 +124,27 @@ class Credential {
     }
     return map;
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        rpId,
+        username,
+        userHandle,
+        keyPairAlias,
+        keyId,
+        keyUseCounter,
+        authRequired,
+        strongboxRequired,
+      ];
 }
 
 class CredentialSchema extends DBSchema {
   CredentialSchema(super.conn);
 
   Future<Credential> insert(Credential credential) async {
-    final toInsert = Credential.copy(credential);
-    toInsert.id = await conn.insert(tableName, toInsert.toMap());
-    return toInsert;
+    final id = await conn.insert(tableName, credential.toMap());
+    return credential.copyWith(id: id);
   }
 
   Future<int> update(Credential credential) {
@@ -103,11 +152,11 @@ class CredentialSchema extends DBSchema {
         where: '$colId = ?', whereArgs: [credential.id]);
   }
 
-  Future<int> incrementUseCounter(int id) async {
+  Future<int> incrementUseCounter(int id, [int inc = 1]) async {
     // Increment the count
     await conn.rawUpdate('''UPDATE $tableName
-      SET $colUseCounter = $colUseCounter + 1
-      WHERE $colId = ?''', [id]);
+      SET $colUseCounter = $colUseCounter + ?
+      WHERE $colId = ?''', [inc, id]);
 
     // Query the new count
     final result = await conn.query(
@@ -149,7 +198,7 @@ class CredentialSchema extends DBSchema {
     return _getOne('$colKeyId = ?', [keyId]);
   }
 
-  Future<Credential?> getByKeyAlais(String alias) {
+  Future<Credential?> getByKeyAlias(String alias) {
     return _getOne('$colKeyPairAlias = ?', [alias]);
   }
 
