@@ -11,7 +11,7 @@ PublicKeyCredentialDescriptor _$PublicKeyCredentialDescriptorFromJson(
     PublicKeyCredentialDescriptor(
       type:
           const PublicKeyCredentialConverter().fromJson(json['type'] as String),
-      id: const ByteBufferConverter().fromJson(json['id'] as List<int>),
+      id: const Uint8ListConverter().fromJson(json['id'] as List<int>),
       transports: (json['transports'] as List<dynamic>?)
           ?.map((e) =>
               const AuthenticatorTransportsConverter().fromJson(e as String))
@@ -22,7 +22,7 @@ Map<String, dynamic> _$PublicKeyCredentialDescriptorToJson(
         PublicKeyCredentialDescriptor instance) =>
     <String, dynamic>{
       'type': const PublicKeyCredentialConverter().toJson(instance.type),
-      'id': const ByteBufferConverter().toJson(instance.id),
+      'id': const Uint8ListConverter().toJson(instance.id),
       'transports': instance.transports
           ?.map(const AuthenticatorTransportsConverter().toJson)
           .toList(),

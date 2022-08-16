@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'converters/bytebuffer_converter.dart';
+import 'converters/uint8list_converter.dart';
 
 part 'generated/user_entity.g.dart';
 
@@ -14,8 +14,8 @@ class UserEntity {
     required this.name,
   });
 
-  @ByteBufferConverter()
-  ByteBuffer id;
+  @Uint8ListConverter()
+  Uint8List id;
   String displayName;
   String name;
 

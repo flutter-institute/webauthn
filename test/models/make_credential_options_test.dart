@@ -9,17 +9,15 @@ import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
 import 'package:webauthn/src/models/rp_entity.dart';
 import 'package:webauthn/src/models/user_entity.dart';
 
-ByteBuffer bb(List<int> list) => Uint8List.fromList(list).buffer;
-
-List<int> li(ByteBuffer bb) => Uint8List.view(bb).toList();
+import '../helpers.dart';
 
 void main() {
   test('serializes correctly', () {
     final options = MakeCredentialOptions(
-      clientDataHash: bb([1, 2, 3, 4, 5]),
+      clientDataHash: ui([1, 2, 3, 4, 5]),
       rpEntity: RpEntity(id: 'test-id', name: 'test-name'),
       userEntity: UserEntity(
-        id: bb([6, 7, 8, 9, 0]),
+        id: ui([6, 7, 8, 9, 0]),
         displayName: 'test-display-name',
         name: 'test-user-name',
       ),
@@ -33,7 +31,7 @@ void main() {
       excludeCredentialDescriptorList: [
         PublicKeyCredentialDescriptor(
           type: PublicKeyCredentialType.publicKey,
-          id: bb([3, 4, 5]),
+          id: ui([3, 4, 5]),
           transports: [
             AuthenticatorTransports.nfc,
             AuthenticatorTransports.usb
@@ -55,13 +53,13 @@ void main() {
           'credTypesAndPubKeyAlgs',
           'excludeCredentials',
         ]));
-    expect(json['clientDataHash'], equals(li(options.clientDataHash)));
+    expect(json['clientDataHash'], equals(options.clientDataHash));
     expect(json['rp'],
         equals({'id': options.rpEntity.id, 'name': options.rpEntity.name}));
     expect(
         json['user'],
         equals({
-          'id': li(options.userEntity.id),
+          'id': options.userEntity.id,
           'displayName': options.userEntity.displayName,
           'name': options.userEntity.name
         }));
@@ -111,12 +109,12 @@ void main() {
     };
 
     final options = MakeCredentialOptions.fromJson(json);
-    expect(li(options.clientDataHash), equals(json['clientDataHash']));
+    expect(options.clientDataHash, equals(json['clientDataHash']));
     expect(options.rpEntity, isNotNull);
     expect(options.rpEntity.id, equals('test-id'));
     expect(options.rpEntity.name, equals('test-name'));
     expect(options.userEntity, isNotNull);
-    expect(li(options.userEntity.id), equals([6, 7, 8, 9, 0]));
+    expect(options.userEntity.id, equals([6, 7, 8, 9, 0]));
     expect(options.userEntity.displayName, equals('test-display-name'));
     expect(options.userEntity.name, equals('test-user-name'));
     expect(options.requireResidentKey, equals(json['requireResidentKey']));
@@ -131,7 +129,7 @@ void main() {
         allOf([isNotNull, hasLength(1)]));
     expect(options.excludeCredentialDescriptorList![0].type,
         equals(PublicKeyCredentialType.publicKey));
-    expect(li(options.excludeCredentialDescriptorList![0].id), [1, 2, 3, 4]);
+    expect(options.excludeCredentialDescriptorList![0].id, [1, 2, 3, 4]);
     expect(
         options.excludeCredentialDescriptorList![0].transports,
         equals(

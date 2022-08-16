@@ -8,7 +8,7 @@ part of '../make_credential_options.dart';
 
 MakeCredentialOptions _$MakeCredentialOptionsFromJson(Map json) =>
     MakeCredentialOptions(
-      clientDataHash: const ByteBufferConverter()
+      clientDataHash: const Uint8ListConverter()
           .fromJson(json['clientDataHash'] as List<int>),
       rpEntity: RpEntity.fromJson(Map<String, dynamic>.from(json['rp'] as Map)),
       userEntity:
@@ -31,7 +31,7 @@ Map<String, dynamic> _$MakeCredentialOptionsToJson(
         MakeCredentialOptions instance) =>
     <String, dynamic>{
       'clientDataHash':
-          const ByteBufferConverter().toJson(instance.clientDataHash),
+          const Uint8ListConverter().toJson(instance.clientDataHash),
       'rp': instance.rpEntity.toJson(),
       'user': instance.userEntity.toJson(),
       'requireResidentKey': instance.requireResidentKey,

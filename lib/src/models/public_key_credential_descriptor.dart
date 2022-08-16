@@ -5,8 +5,8 @@ import 'package:json_annotation/json_annotation.dart';
 import '../enums/authenticator_transports.dart';
 import '../enums/public_key_credential_type.dart';
 import 'converters/authenticator_transports_converter.dart';
-import 'converters/bytebuffer_converter.dart';
 import 'converters/public_key_credential_type_converter.dart';
+import 'converters/uint8list_converter.dart';
 
 part 'generated/public_key_credential_descriptor.g.dart';
 
@@ -20,8 +20,8 @@ class PublicKeyCredentialDescriptor {
 
   @PublicKeyCredentialConverter()
   PublicKeyCredentialType type;
-  @ByteBufferConverter()
-  ByteBuffer id;
+  @Uint8ListConverter()
+  Uint8List id;
   @AuthenticatorTransportsConverter()
   List<AuthenticatorTransports>? transports;
 

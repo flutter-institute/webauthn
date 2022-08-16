@@ -22,6 +22,7 @@ dependencies:
   logger: ^1.1.0
   crypto: ^3.0.2
   hex: ^0.2.0
+  analyzer: ^4.6.0
 
 dev_dependencies:
   flutter_test:

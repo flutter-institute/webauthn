@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../constants.dart' as c;
-import 'converters/bytebuffer_converter.dart';
 import 'converters/cred_type_pub_key_algo_pair_converter.dart';
+import 'converters/uint8list_converter.dart';
 import 'cred_type_pub_key_algo_pair.dart';
 import 'public_key_credential_descriptor.dart';
 import 'rp_entity.dart';
@@ -25,8 +25,8 @@ class MakeCredentialOptions {
     required this.excludeCredentialDescriptorList,
   });
 
-  @ByteBufferConverter()
-  ByteBuffer clientDataHash;
+  @Uint8ListConverter()
+  Uint8List clientDataHash;
   @JsonKey(name: 'rp')
   RpEntity rpEntity;
   @JsonKey(name: 'user')
@@ -47,24 +47,32 @@ class MakeCredentialOptions {
 
   Map<String, dynamic> toJson() => _$MakeCredentialOptionsToJson(this);
 
-  bool areWellFormed() {
-    if (clientDataHash.lengthInBytes != c.shaLength) {
-      return false;
+  /// Check whether the options are well formed.
+  /// If options are valid, then `null` is returned
+  /// Otherewise a `String` is returned with the error message
+  String? hasError() {
+    if (clientDataHash.length != c.shaLength) {
+      return 'ClientDataHash is an invalid length. Expected ${c.shaLength}.';
     }
 
-    // TODO rpEntity.id isNotEmpty
+    if (rpEntity.id.isEmpty) {
+      return 'rpEntity.id is required.';
+    }
     // TODO enforce RFC8265 for rpEntity.name and userEntity.name - https://www.rfc-editor.org/rfc/rfc8265
-    // TODO userEntity.id isNotEmpty and len <= 64
+
+    if (userEntity.id.isEmpty || userEntity.id.length > 64) {
+      return 'userEntity.id must be between 1 and 64 bytes longs.';
+    }
 
     if (!(requireUserPresence ^ requireUserVerification)) {
       // Only one may be set
-      return false;
+      return 'RequireUserPresence and RequireUserVerification cannot both be set.';
     }
 
     if (credTypesAndPubKeyAlgs.isEmpty) {
-      return false;
+      return 'CredTypesAndPubKeyAlgs was empty. At least one entry is required.';
     }
 
-    return true;
+    return null;
   }
 }
