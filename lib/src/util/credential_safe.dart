@@ -28,7 +28,6 @@ class CredentialSafe {
   final DB db;
 
   static final keyCurve = curves.p256;
-  static final keyAlgo = algorithms.signing.ecdsa.sha256;
 
   /// Generate a new ES256 KeyPair and store it to our secure storage using the given alias
   Future<KeyPair> _generateNewES256KeyPair(String alias) async {
