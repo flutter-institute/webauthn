@@ -4,8 +4,10 @@ import 'package:crypto/crypto.dart' as c;
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:webauthn/src/exceptions.dart';
 
-abstract class WebauthnCrytography {
+class WebauthnCrytography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;
+
+  const WebauthnCrytography();
 
   /// Generate a signer to be unlocked via biometric prompt (where available)
   /// This signature object should be passed down to [performSignature].
@@ -26,7 +28,7 @@ abstract class WebauthnCrytography {
 
   /// Sign [data] using the provided [signer]. If no [signer] is specified
   /// used the provided [privateKey] to create a new signer.
-  static Uint8List performSignature(Uint8List data,
+  Uint8List performSignature(Uint8List data,
       {PrivateKey? privateKey, Signer<PrivateKey>? signer}) {
     if (signer == null) {
       // Create our signer
@@ -42,7 +44,7 @@ abstract class WebauthnCrytography {
   }
 
   /// Verifty that [signature] matches the [data] with the given [publicKey].
-  static bool verifySignature(
+  bool verifySignature(
       PublicKey publicKey, Uint8List data, Uint8List signature) {
     final verifier = createVerifier(publicKey);
     return verifier.verify(data, Signature(signature));
