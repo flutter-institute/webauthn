@@ -6,9 +6,12 @@ This plugin relies on the [local_auth plugin](https://pub.dev/packages/local_aut
 
 ## Getting Started
 
-### Updated Android to use FlutterFragmentActivity
+### Setting up local_auth
 
-To use local_auth in Android you will need to update your main activity to be a FlutterFragmentActivity. See the example app.
+We rely on local_auth in the background, so you need to configure your apps to work properly
+with this plugin. See the [iOS Integration](https://pub.dev/packages/local_auth#ios-integration) and [Android Integration](https://pub.dev/packages/local_auth#android-integration) sections.
+
+If you want customize the dialog messages for the biometric prompt, you will need to add the platform-specific local_auth implementation packages (See the "Dialogs" section of the [Usage](https://pub.dev/packages/local_auth#usage) instructions on local_auth). These custom messages can then be passed to `Authenticator.makeCredential`.
 
 ### Configure Android Version
 

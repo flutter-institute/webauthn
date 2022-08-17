@@ -35,7 +35,7 @@ void main() {
     expect(credential.id, allOf([isNotNull, greaterThan(0)]));
     expect(credential.keyId, allOf([isNotNull, hasLength(32)]));
     expect(credential.keyPairAlias, allOf([isNotNull, isNotEmpty]));
-    expect(credential.keyUseCounter, equals(1));
+    expect(credential.keyUseCounter, equals(0));
     // Our defined fields
     expect(credential.rpId, equals(testId));
     expect(credential.username, equals(testUsername));

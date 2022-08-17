@@ -35,7 +35,7 @@ void main() {
       final created = await createCredential();
       // Defaults
       expect(created.id, equals(1));
-      expect(created.keyUseCounter, equals(1));
+      expect(created.keyUseCounter, equals(0));
       // Values we manually set
       expect(created.rpId, equals(credential.rpId));
       expect(created.userHandle, equals(credential.userHandle));
@@ -160,11 +160,11 @@ void main() {
 
       var count =
           await execute((schema) => schema.incrementUseCounter(current.id!));
-      expect(count, equals(2));
+      expect(count, equals(1));
 
       count =
           await execute((schema) => schema.incrementUseCounter(current.id!, 3));
-      expect(count, equals(5));
+      expect(count, equals(4));
 
       // Verify the new data was saved
       final updated = await execute((schema) => schema.getById(current.id!));

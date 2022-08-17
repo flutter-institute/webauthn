@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as c;
 import 'package:crypto_keys/crypto_keys.dart';
-import 'package:webauthn/src/exceptions.dart';
+
+import '../exceptions.dart';
+import '../helpers/bigint.dart';
 
 class WebauthnCrytography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;
@@ -26,6 +28,39 @@ class WebauthnCrytography {
     return Uint8List.fromList(hash.bytes);
   }
 
+  /// Convert a crypto_keys signature to DER format
+  static Uint8List signatureToDER(Uint8List sig) {
+    final der = BytesBuilder()
+      ..add([0x30, 0x44]) // SEQUENCE (68 bytes)
+      ..add([0x02, 0x20]) // INTEGER (32 bytes)
+      ..add(sig.sublist(0, 0x20)) // sig.r
+      ..add([0x02, 0x20]) // INTEGER (32 bytes)
+      ..add(sig.sublist(0x20)); // sig.s
+    return der.toBytes();
+  }
+
+  /// Convert a DER format to a crypto_keys format
+  // ignore: non_constant_identifier_names
+  static Uint8List DERToSignature(Uint8List der) {
+    const firstOffset = 3;
+    final firstLength = der.elementAt(firstOffset);
+
+    var start = firstOffset + 1;
+    final firstBytes = der.sublist(start, start + firstLength);
+    final secondOffset = start + firstLength + 1;
+    final secondLength = der.elementAt(secondOffset);
+    start = secondOffset + 1;
+    final secondBytes = der.sublist(start, start + secondLength);
+
+    final first = bytesToBigInt(firstBytes);
+    final second = bytesToBigInt(secondBytes);
+
+    final result = BytesBuilder()
+      ..add(bigIntToBytes(first))
+      ..add(bigIntToBytes(second));
+    return result.toBytes();
+  }
+
   /// Sign [data] using the provided [signer]. If no [signer] is specified
   /// used the provided [privateKey] to create a new signer.
   Uint8List performSignature(Uint8List data,
@@ -40,13 +75,13 @@ class WebauthnCrytography {
       }
       signer = createSigner(privateKey);
     }
-    return signer.sign(data.toList()).data;
+    return signatureToDER(signer.sign(data.toList()).data);
   }
 
   /// Verifty that [signature] matches the [data] with the given [publicKey].
   bool verifySignature(
       PublicKey publicKey, Uint8List data, Uint8List signature) {
     final verifier = createVerifier(publicKey);
-    return verifier.verify(data, Signature(signature));
+    return verifier.verify(data, Signature(DERToSignature(signature)));
   }
 }

@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:webauthn/src/enums/authenticator_transports.dart';
 import 'package:webauthn/src/enums/public_key_credential_type.dart';

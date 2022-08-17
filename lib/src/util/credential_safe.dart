@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto_keys/crypto_keys.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
 
-import '../extensions.dart';
 import '../db/credential.dart';
 import '../db/db.dart';
+import '../exceptions.dart';
+import '../extensions.dart';
 
 /// CredentialSafe uses the platforms Secure Storage to generate and
 /// store ES256 keys that are hardware-backed.
@@ -28,6 +30,13 @@ class CredentialSafe {
   final DB db;
 
   static final keyCurve = curves.p256;
+
+  Future<bool> supportsUserVerification() async {
+    if (authenticationRequired) {
+      return await LocalAuthentication().isDeviceSupported();
+    }
+    return false;
+  }
 
   /// Generate a new ES256 KeyPair and store it to our secure storage using the given alias
   Future<KeyPair> _generateNewES256KeyPair(String alias) async {
@@ -126,7 +135,12 @@ class CredentialSafe {
   }
 
   /// Encode an EC public key in the COSE/CBOR format
-  static Uint8List coseEncodePublicKey(EcPublicKey publicKey) {
+  static Uint8List coseEncodePublicKey(PublicKey publicKey) {
+    // This only works with our EcPublicKeys
+    if (publicKey is! EcPublicKey) {
+      throw InvalidArgumentException('PublicKey must be an EcPublicKey');
+    }
+
     // Ensure our coordinates are the proper length. Since BigInt is signed
     // because of this, we want to strip off the high zero bytes if any of
     // these numbers is a negative. The two's complement of the value is what

@@ -59,6 +59,16 @@ class MakeCredentialOptions {
       return 'rpEntity.id is required.';
     }
     // TODO enforce RFC8265 for rpEntity.name and userEntity.name - https://www.rfc-editor.org/rfc/rfc8265
+    // For now, just pick a basic rule
+    final wordsWithSomePunctuation = RegExp(r'^[\w_.-]+$');
+    if (rpEntity.name.isEmpty ||
+        !wordsWithSomePunctuation.hasMatch(rpEntity.name)) {
+      return 'rpEntity.name must be a non-empty string with valid characters';
+    }
+    if (userEntity.name.isEmpty ||
+        !wordsWithSomePunctuation.hasMatch(userEntity.name)) {
+      return 'userEntity.name must be a non-empty string with valid characters';
+    }
 
     if (userEntity.id.isEmpty || userEntity.id.length > 64) {
       return 'userEntity.id must be between 1 and 64 bytes longs.';
@@ -66,7 +76,7 @@ class MakeCredentialOptions {
 
     if (!(requireUserPresence ^ requireUserVerification)) {
       // Only one may be set
-      return 'RequireUserPresence and RequireUserVerification cannot both be set.';
+      return 'One of RequireUserPresence and RequireUserVerification must be set, but not both.';
     }
 
     if (credTypesAndPubKeyAlgs.isEmpty) {

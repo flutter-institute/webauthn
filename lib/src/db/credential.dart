@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 
+import '../enums/public_key_credential_type.dart';
 import '../helpers/random.dart';
 import 'db.dart';
 
@@ -32,6 +33,8 @@ final allColumns = [
 ];
 
 class Credential extends Equatable {
+  final type = PublicKeyCredentialType.publicKey;
+
   late final int? id;
   late final String rpId;
   late final String username;
@@ -43,6 +46,7 @@ class Credential extends Equatable {
   late final bool strongboxRequired;
 
   // Internal constructor
+  // ignore: prefer_const_constructors_in_immutables
   Credential._(
     this.id,
     this.rpId,
@@ -91,21 +95,20 @@ class Credential extends Equatable {
   ) : id = null {
     keyId = RandomHelper.nextBytes(32);
     keyPairAlias = _keyPairPrefix + base64.encode(keyId.toList());
-    keyUseCounter = 1;
+    keyUseCounter = 0;
   }
 
   /// Create a credential from a map (used for db interop)
-  Credential.fromMap(Map<String, dynamic> map) {
-    id = map[colId];
-    rpId = map[colRpId];
-    username = map[colUsername];
-    userHandle = map[colUserHandle];
-    keyPairAlias = map[colKeyPairAlias];
-    keyId = map[colKeyId];
-    keyUseCounter = map[colUseCounter];
-    authRequired = map[colAuthRequired] == 1;
-    strongboxRequired = map[colAuthRequired] == 1;
-  }
+  Credential.fromMap(Map<String, dynamic> map)
+      : id = map[colId],
+        rpId = map[colRpId],
+        username = map[colUsername],
+        userHandle = map[colUserHandle],
+        keyPairAlias = map[colKeyPairAlias],
+        keyId = map[colKeyId],
+        keyUseCounter = map[colUseCounter],
+        authRequired = map[colAuthRequired] == 1,
+        strongboxRequired = map[colAuthRequired] == 1;
 
   /// Serialize a credential to a Map (user for db interop)
   Map<String, dynamic> toMap() {
