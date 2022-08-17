@@ -30,18 +30,6 @@ class DB {
 
   const DB();
 
-  Future<T> execute<T>(Future<T> Function(Database db) action) async {
-    final connection = await _getConnection();
-    final result = await action(connection);
-    if (connection.isOpen) connection.close();
-
-    return result;
-  }
-
-  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) {
-    return execute((db) => db.transaction((txn) => action(txn)));
-  }
-
   @visibleForTesting
   Future<void> deleteDbFile() async {
     final dbPath = await _getDbPath();
@@ -50,7 +38,7 @@ class DB {
     }
   }
 
-  Future<Database> _getConnection() async {
+  Future<Database> open() async {
     final numMigrations = migrationScripts.length;
     return await openDatabase(
       join(await _getDbPath()),
@@ -75,11 +63,4 @@ class DB {
   Future<String> _getDirectory() async {
     return mockDirectory ?? await getDatabasesPath();
   }
-}
-
-abstract class DBSchema {
-  @protected
-  final DatabaseExecutor conn;
-
-  DBSchema(this.conn);
 }

@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:equatable/equatable.dart';
-
 import '../enums/public_key_credential_type.dart';
 import '../helpers/random.dart';
 import 'db.dart';
+import 'schema.dart';
 
 const _keyPairPrefix = "webauthn-prefix-";
 
@@ -32,10 +31,9 @@ final allColumns = [
   colStrongboxRequired,
 ];
 
-class Credential extends Equatable {
+class Credential extends SchemaObject {
   final type = PublicKeyCredentialType.publicKey;
 
-  late final int? id;
   late final String rpId;
   late final String username;
   late final Uint8List userHandle;
@@ -48,7 +46,7 @@ class Credential extends Equatable {
   // Internal constructor
   // ignore: prefer_const_constructors_in_immutables
   Credential._(
-    this.id,
+    super.id,
     this.rpId,
     this.username,
     this.userHandle,
@@ -92,7 +90,7 @@ class Credential extends Equatable {
     this.username,
     this.authRequired,
     this.strongboxRequired,
-  ) : id = null {
+  ) : super(null) {
     keyId = RandomHelper.nextBytes(32);
     keyPairAlias = _keyPairPrefix + base64.encode(keyId.toList());
     keyUseCounter = 0;
@@ -100,15 +98,15 @@ class Credential extends Equatable {
 
   /// Create a credential from a map (used for db interop)
   Credential.fromMap(Map<String, dynamic> map)
-      : id = map[colId],
-        rpId = map[colRpId],
+      : rpId = map[colRpId],
         username = map[colUsername],
         userHandle = map[colUserHandle],
         keyPairAlias = map[colKeyPairAlias],
         keyId = map[colKeyId],
         keyUseCounter = map[colUseCounter],
         authRequired = map[colAuthRequired] == 1,
-        strongboxRequired = map[colAuthRequired] == 1;
+        strongboxRequired = map[colAuthRequired] == 1,
+        super(map[colId]);
 
   /// Serialize a credential to a Map (user for db interop)
   Map<String, dynamic> toMap() {
@@ -142,32 +140,41 @@ class Credential extends Equatable {
       ];
 }
 
-class CredentialSchema extends DBSchema {
-  CredentialSchema(super.conn);
+class CredentialSchema extends DBSchema<Credential> {
+  CredentialSchema([DB? db]) : super(db);
 
-  Future<Credential> insert(Credential credential) async {
-    final id = await conn.insert(tableName, credential.toMap());
-    return credential.copyWith(id: id);
+  @override
+  Future<Credential> insert(Credential data) async {
+    final id = await execute((conn) => conn.insert(tableName, data.toMap()));
+    return data.copyWith(id: id);
   }
 
-  Future<int> update(Credential credential) {
-    return conn.update(tableName, credential.toMap(),
-        where: '$colId = ?', whereArgs: [credential.id]);
+  @override
+  Future<bool> update(Credential data) async {
+    final rows = await execute((conn) => conn.update(
+          tableName,
+          data.toMap(),
+          where: '$colId = ?',
+          whereArgs: [data.id],
+        ));
+    return rows > 0;
   }
 
   Future<int> incrementUseCounter(int id, [int inc = 1]) async {
-    // Increment the count
-    await conn.rawUpdate('''UPDATE $tableName
-      SET $colUseCounter = $colUseCounter + ?
-      WHERE $colId = ?''', [inc, id]);
+    final result = await transaction((txn) async {
+      // Increment the count
+      await txn.rawUpdate('''UPDATE $tableName
+        SET $colUseCounter = $colUseCounter + ?
+        WHERE $colId = ?''', [inc, id]);
 
-    // Query the new count
-    final result = await conn.query(
-      tableName,
-      columns: [colUseCounter],
-      where: '$colId = ?',
-      whereArgs: [id],
-    );
+      // Query the new count
+      return txn.query(
+        tableName,
+        columns: [colUseCounter],
+        where: '$colId = ?',
+        whereArgs: [id],
+      );
+    });
 
     int? value;
     if (result.isNotEmpty) {
@@ -176,23 +183,27 @@ class CredentialSchema extends DBSchema {
     return value ?? 0;
   }
 
-  Future<int> delete(int id) async {
-    return await conn.delete(tableName, where: '$colId = ?', whereArgs: [id]);
+  @override
+  Future<bool> delete(int id) async {
+    final rows = await execute(
+        (conn) => conn.delete(tableName, where: '$colId = ?', whereArgs: [id]));
+    return rows > 0;
   }
 
   Future<Credential?> _getOne(String where, List<dynamic> args) async {
-    final results = await conn.query(
-      tableName,
-      columns: allColumns,
-      where: where,
-      whereArgs: args,
-    );
+    final results = await execute((conn) => conn.query(
+          tableName,
+          columns: allColumns,
+          where: where,
+          whereArgs: args,
+        ));
     if (results.isNotEmpty) {
       return Credential.fromMap(results.first);
     }
     return null;
   }
 
+  @override
   Future<Credential?> getById(int id) {
     return _getOne('$colId = ?', [id]);
   }
@@ -206,12 +217,12 @@ class CredentialSchema extends DBSchema {
   }
 
   Future<List<Credential>> getByRpId(String rpId) async {
-    final results = await conn.query(
-      tableName,
-      columns: allColumns,
-      where: '$colRpId = ?',
-      whereArgs: [rpId],
-    );
+    final results = await execute((conn) => conn.query(
+          tableName,
+          columns: allColumns,
+          where: '$colRpId = ?',
+          whereArgs: [rpId],
+        ));
     return results.map((e) => Credential.fromMap(e)).toList();
   }
 }

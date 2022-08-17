@@ -7,7 +7,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../db/credential.dart';
-import '../db/db.dart';
 import '../exceptions.dart';
 import '../extensions.dart';
 
@@ -20,14 +19,15 @@ class CredentialSafe {
   CredentialSafe({
     this.authenticationRequired = true,
     this.strongboxRequired = true,
-    this.db = const DB(),
+    CredentialSchema? credentialSchema,
     FlutterSecureStorage? storageInst,
-  }) : _storage = storageInst ?? const FlutterSecureStorage();
+  })  : _credentialSchema = credentialSchema ?? CredentialSchema(),
+        _storage = storageInst ?? const FlutterSecureStorage();
 
   final bool authenticationRequired;
   final bool strongboxRequired;
   final FlutterSecureStorage _storage;
-  final DB db;
+  final CredentialSchema _credentialSchema;
 
   static final keyCurve = curves.p256;
 
@@ -91,25 +91,25 @@ class CredentialSafe {
     // return not captured -- we will retrieve it later
     _generateNewES256KeyPair(credential.keyPairAlias);
 
-    return db.execute((db) => CredentialSchema(db).insert(credential));
+    return _credentialSchema.insert(credential);
   }
 
   /// Delete a credential from the store
   Future<void> deleteCredential(Credential credential) async {
     // TODO do we want to leave the alias in our key store?
     if (credential.id != null) {
-      await db.execute((db) => CredentialSchema(db).delete(credential.id!));
+      await _credentialSchema.delete(credential.id!);
     }
   }
 
   /// Get all the credentials belonging to this relying party
   Future<List<Credential>> getKeysForEntity(String rpEntityId) {
-    return db.execute((db) => CredentialSchema(db).getByRpId(rpEntityId));
+    return _credentialSchema.getByRpId(rpEntityId);
   }
 
   /// Get the credential that matches the specific unique key, if it exists
   Future<Credential?> getCredentialBySourceKey(Uint8List keyId) {
-    return db.execute((db) => CredentialSchema(db).getByKeyId(keyId));
+    return _credentialSchema.getByKeyId(keyId);
   }
 
   /// Retrieve a previously-generated keypair from the keystore, if it exists
@@ -119,8 +119,8 @@ class CredentialSafe {
 
   Future<int> incrementCredentialUseCounter(Credential credential) async {
     if (credential.id != null) {
-      credential.keyUseCounter = await db.transaction(
-          (txn) => CredentialSchema(txn).incrementUseCounter(credential.id!));
+      credential.keyUseCounter =
+          await _credentialSchema.incrementUseCounter(credential.id!);
       return credential.keyUseCounter;
     }
     return 0;
@@ -129,8 +129,7 @@ class CredentialSafe {
   /// Checks whether this key requires user verification or not.
   /// Look up the key using the [alias]
   Future<bool?> keyRequiresVerification(String alias) async {
-    final cred =
-        await db.execute((db) => CredentialSchema(db).getByKeyAlias(alias));
+    final cred = await _credentialSchema.getByKeyAlias(alias);
     return cred?.authRequired;
   }
 

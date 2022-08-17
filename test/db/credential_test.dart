@@ -5,17 +5,15 @@ import 'package:webauthn/src/db/db.dart';
 
 import '../helpers.dart';
 
-Future<T> execute<T>(Future<T> Function(CredentialSchema schema) handler) {
-  return const DB().execute((db) => handler(CredentialSchema(db)));
-}
-
 void main() {
   sqfliteTestInit();
 
   late Credential credential;
+  late CredentialSchema schema;
 
   setUp(() async {
-    await const DB().deleteDbFile();
+    const db = DB();
+    await db.deleteDbFile();
 
     credential = Credential.forKey(
       'test-rp-id',
@@ -24,10 +22,12 @@ void main() {
       true,
       true,
     );
+
+    schema = CredentialSchema(db);
   });
 
   Future<Credential> createCredential([Credential? def]) {
-    return execute((schema) => schema.insert(def ?? credential));
+    return schema.insert(def ?? credential);
   }
 
   group('create', () {
@@ -56,7 +56,7 @@ void main() {
 
       // Collision on pk
       expect(
-          () async => await execute((schema) => schema.insert(current)),
+          () async => schema.insert(current),
           throwsA(predicate((e) =>
               e is DatabaseException &&
               e.isUniqueConstraintError('credential._id'))));
@@ -71,7 +71,7 @@ void main() {
         keyPairAlias: 'other-alias',
       ));
       final current = await createCredential();
-      final read = await execute((schema) => schema.getById(current.id!));
+      final read = await schema.getById(current.id!);
       expect(read, equals(current));
     });
 
@@ -82,7 +82,7 @@ void main() {
         keyPairAlias: 'other-alias',
       ));
       final current = await createCredential();
-      final read = await execute((schema) => schema.getByKeyId(current.keyId));
+      final read = await schema.getByKeyId(current.keyId);
       expect(read, equals(current));
     });
 
@@ -93,8 +93,7 @@ void main() {
         keyPairAlias: 'other-alias',
       ));
       final current = await createCredential();
-      final read =
-          await execute((schema) => schema.getByKeyAlias(current.keyPairAlias));
+      final read = await schema.getByKeyAlias(current.keyPairAlias);
       expect(read, equals(current));
     });
 
@@ -113,7 +112,7 @@ void main() {
       expect(first, isNot(equals(second)));
       expect(first, isNot(equals(third)));
 
-      final result = await execute((schema) => schema.getByRpId(first.rpId));
+      final result = await schema.getByRpId(first.rpId);
       expect(result, hasLength(2));
       expect(result[0], equals(first));
       expect(result[1], equals(second));
@@ -138,15 +137,15 @@ void main() {
         authRequired: false,
         strongboxRequired: false,
       );
-      final count = await execute((schema) => schema.update(toUpdate));
+      final success = await schema.update(toUpdate);
 
-      expect(count, equals(1));
+      expect(success, isTrue);
 
-      final updated = await execute((schema) => schema.getById(toUpdate.id!));
+      final updated = await schema.getById(toUpdate.id!);
       expect(updated, equals(toUpdate));
 
       // Verify other was untouched
-      final other2 = await execute((schema) => schema.getById(other.id!));
+      final other2 = await schema.getById(other.id!);
       expect(other, equals(other2));
     });
 
@@ -158,20 +157,18 @@ void main() {
       ));
       final current = await createCredential();
 
-      var count =
-          await execute((schema) => schema.incrementUseCounter(current.id!));
+      var count = await schema.incrementUseCounter(current.id!);
       expect(count, equals(1));
 
-      count =
-          await execute((schema) => schema.incrementUseCounter(current.id!, 3));
+      count = await schema.incrementUseCounter(current.id!, 3);
       expect(count, equals(4));
 
       // Verify the new data was saved
-      final updated = await execute((schema) => schema.getById(current.id!));
+      final updated = await schema.getById(current.id!);
       expect(updated!.keyUseCounter, equals(count));
 
       // Verify other was untouched
-      final other2 = await execute((schema) => schema.getById(other.id!));
+      final other2 = await schema.getById(other.id!);
       expect(other, equals(other2));
     });
   });
@@ -185,14 +182,14 @@ void main() {
       ));
       final current = await createCredential();
 
-      await execute((schema) => schema.delete(current.id!));
+      await schema.delete(current.id!);
 
       // Cannot find current
-      final current2 = await execute((schema) => schema.getById(current.id!));
+      final current2 = await schema.getById(current.id!);
       expect(current2, isNull);
 
       // Can still find other
-      final other2 = await execute((schema) => schema.getById(other.id!));
+      final other2 = await schema.getById(other.id!);
       expect(other2, equals(other));
     });
   });
