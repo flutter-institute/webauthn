@@ -51,13 +51,13 @@ void main() {
           'credTypesAndPubKeyAlgs',
           'excludeCredentials',
         ]));
-    expect(json['clientDataHash'], equals(options.clientDataHash));
+    expect(json['clientDataHash'], equals('AQIDBAU='));
     expect(json['rp'],
         equals({'id': options.rpEntity.id, 'name': options.rpEntity.name}));
     expect(
         json['user'],
         equals({
-          'id': options.userEntity.id,
+          'id': 'BgcICQA=',
           'displayName': options.userEntity.displayName,
           'name': options.userEntity.name
         }));
@@ -73,7 +73,7 @@ void main() {
         equals([
           {
             'type': 'public-key',
-            'id': [3, 4, 5],
+            'id': 'AwQF',
             'transports': ['nfc', 'usb']
           }
         ]));
@@ -81,13 +81,13 @@ void main() {
 
   test('deserializes correctly', () {
     final json = {
-      'clientDataHash': [1, 2, 3, 4, 5],
+      'clientDataHash': 'AQIDBAU=', // [1, 2, 3, 4, 5],
       'rp': {
         'id': 'test-id',
         'name': 'test-name',
       },
       'user': {
-        'id': [6, 7, 8, 9, 0],
+        'id': 'BgcICQA=', // [6, 7, 8, 9, 0],
         'displayName': 'test-display-name',
         'name': 'test-user-name',
       },
@@ -100,14 +100,14 @@ void main() {
       'excludeCredentials': [
         {
           'type': 'public-key',
-          'id': [1, 2, 3, 4],
+          'id': 'AQIDBA==', // [1, 2, 3, 4],
           'transports': ['internal', 'nfc'],
         }
       ],
     };
 
     final options = MakeCredentialOptions.fromJson(json);
-    expect(options.clientDataHash, equals(json['clientDataHash']));
+    expect(options.clientDataHash, equals([1, 2, 3, 4, 5]));
     expect(options.rpEntity, isNotNull);
     expect(options.rpEntity.id, equals('test-id'));
     expect(options.rpEntity.name, equals('test-name'));

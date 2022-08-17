@@ -1,12 +1,14 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:json_annotation/json_annotation.dart';
 
-class Uint8ListConverter implements JsonConverter<Uint8List, List<int>> {
+/// Convert a Uint8List to/from its Base64 representation
+class Uint8ListConverter implements JsonConverter<Uint8List, String> {
   const Uint8ListConverter();
 
   @override
-  Uint8List fromJson(List<int> json) => Uint8List.fromList(json);
+  Uint8List fromJson(String json) => base64.decode(json);
 
   @override
-  List<int> toJson(Uint8List object) => object.toList();
+  String toJson(Uint8List object) => base64.encode(object);
 }

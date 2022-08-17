@@ -8,8 +8,8 @@ part of '../make_credential_options.dart';
 
 MakeCredentialOptions _$MakeCredentialOptionsFromJson(Map json) =>
     MakeCredentialOptions(
-      clientDataHash: const Uint8ListConverter()
-          .fromJson(json['clientDataHash'] as List<int>),
+      clientDataHash:
+          const Uint8ListConverter().fromJson(json['clientDataHash'] as String),
       rpEntity: RpEntity.fromJson(Map<String, dynamic>.from(json['rp'] as Map)),
       userEntity:
           UserEntity.fromJson(Map<String, dynamic>.from(json['user'] as Map)),

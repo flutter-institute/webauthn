@@ -7,7 +7,7 @@ part of '../user_entity.dart';
 // **************************************************************************
 
 UserEntity _$UserEntityFromJson(Map<String, dynamic> json) => UserEntity(
-      id: const Uint8ListConverter().fromJson(json['id'] as List<int>),
+      id: const Uint8ListConverter().fromJson(json['id'] as String),
       displayName: json['displayName'] as String,
       name: json['name'] as String,
     );
