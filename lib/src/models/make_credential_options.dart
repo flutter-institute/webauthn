@@ -22,7 +22,7 @@ class MakeCredentialOptions {
     required this.requireUserPresence,
     required this.requireUserVerification,
     required this.credTypesAndPubKeyAlgs,
-    required this.excludeCredentialDescriptorList,
+    this.excludeCredentialDescriptorList,
   });
 
   @Uint8ListConverter()

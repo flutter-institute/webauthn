@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cbor/simple.dart';
 import 'package:collection/collection.dart';
@@ -6,7 +7,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:logger/logger.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:webauthn/src/authenticator.dart';
@@ -14,12 +14,15 @@ import 'package:webauthn/src/constants.dart';
 import 'package:webauthn/src/db/credential.dart';
 import 'package:webauthn/src/enums/public_key_credential_type.dart';
 import 'package:webauthn/src/exceptions.dart';
+import 'package:webauthn/src/models/get_assertion_options.dart';
 import 'package:webauthn/src/models/make_credential_options.dart';
 import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
 import 'package:webauthn/src/util/credential_safe.dart';
 
 import 'authenticator_test.mocks.dart';
-// import 'authenticator_test.mocks.dart';
+
+typedef CredentialFinder = Future<Credential?> Function(Invocation args);
+typedef CredentialsFinder = Future<List<Credential>> Function(Invocation args);
 
 const makeCredentialJson = '''{
     "authenticatorExtensions": "",
@@ -45,9 +48,20 @@ const makeCredentialJson = '''{
     }
 }''';
 
+const getAssertionJson = '''{
+    "allowCredentialDescriptorList": [{
+        "id": "jVtTOKLHRMN17I66w48XWuJadCitXg0xZKaZvHdtW6RDCJhxO6Cfff9qbYnZiMQ1pl8CzPkXcXEHwpQYFknN2w==",
+        "type": "public-key"
+    }],
+    "authenticatorExtensions": "",
+    "clientDataHash": "BWlg/oAqeIhMHkGAo10C3sf4U/sy0IohfKB0OlcfHHU=",
+    "requireUserPresence": true,
+    "requireUserVerification": false,
+    "rpId": "webauthn.io"
+}''';
+
 @GenerateMocks([CredentialSchema, FlutterSecureStorage, LocalAuthentication])
 void main() {
-  final logger = Logger();
   WidgetsFlutterBinding.ensureInitialized();
 
   late MockCredentialSchema mockSchema;
@@ -80,6 +94,23 @@ void main() {
     // Set up our Schema Mock
     int nextId = 1;
     final allCredentials = <Credential>[];
+
+    CredentialsFinder findCredentials(
+        bool Function(Credential e, dynamic value) matcher) {
+      return (args) async {
+        final arg = args.positionalArguments[0];
+        return allCredentials.where((e) => matcher(e, arg)).toList();
+      };
+    }
+
+    CredentialFinder findCredential(
+        bool Function(Credential e, dynamic value) matcher) {
+      return (args) async {
+        final allMatching = await findCredentials(matcher)(args);
+        return allMatching.firstOrNull;
+      };
+    }
+
     mockSchema = MockCredentialSchema();
     when(mockSchema.insert(any)).thenAnswer((realInvocation) async {
       final args = realInvocation.positionalArguments[0] as Credential;
@@ -87,25 +118,30 @@ void main() {
       allCredentials.add(credential);
       return credential;
     });
-    when(mockSchema.getById(any)).thenAnswer((args) async {
-      final argId = args.positionalArguments[0];
-      final idx = allCredentials.indexWhere((e) => e.id == argId);
-      return idx >= 0 ? allCredentials[idx] : null;
-    });
+    when(mockSchema.getById(any))
+        .thenAnswer(findCredential((e, arg) => e.id == arg));
     final listEq = const ListEquality().equals;
-    when(mockSchema.getByKeyId(any)).thenAnswer((args) async {
-      final argKeyId = args.positionalArguments[0];
-      final idx = allCredentials.indexWhere((e) => listEq(e.keyId, argKeyId));
-      return idx >= 0 ? allCredentials[idx] : null;
-    });
-    when(mockSchema.getByRpId(any)).thenAnswer((args) async {
-      final argRpId = args.positionalArguments[0];
-      return allCredentials.where((e) => e.rpId == argRpId).toList();
-    });
+    when(mockSchema.getByKeyId(any))
+        .thenAnswer(findCredential((e, arg) => listEq(e.keyId, arg)));
+    when(mockSchema.getByKeyAlias(any))
+        .thenAnswer(findCredential((e, arg) => e.keyPairAlias == arg));
+    when(mockSchema.getByRpId(any))
+        .thenAnswer(findCredentials((e, arg) => e.rpId == arg));
     when(mockSchema.delete(any)).thenAnswer((args) async {
       final argId = args.positionalArguments[0];
       allCredentials.removeWhere((e) => e.id == argId);
       return true;
+    });
+    when(mockSchema.incrementUseCounter(any)).thenAnswer((args) async {
+      final id = args.positionalArguments[0];
+      final idx = allCredentials.indexWhere((e) => e.id == id);
+      var nextCount = 0;
+      if (idx >= 0) {
+        final credential = allCredentials[idx];
+        nextCount = credential.keyUseCounter + 1;
+        allCredentials[idx] = credential.copyWith(keyUseCounter: nextCount);
+      }
+      return nextCount;
     });
 
     // Set up our Secure Storage Mock
@@ -116,7 +152,6 @@ void main() {
       value: anyNamed('value'),
     )).thenAnswer((realInvocation) async {
       storedKey = realInvocation.namedArguments[const Symbol('value')];
-      logger.d('storedKey $storedKey');
     });
     when(mockSecureStorage.read(key: anyNamed('key')))
         .thenAnswer((realInvocation) async => storedKey);
@@ -130,9 +165,11 @@ void main() {
   });
 
   test('make credential creates a valid attestation', () async {
-    final options =
+    final authenticator = getSut();
+
+    final credentialOptions =
         MakeCredentialOptions.fromJson(jsonDecode(makeCredentialJson));
-    final attObj = await getSut().makeCredential(options);
+    final attObj = await authenticator.makeCredential(credentialOptions);
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
     expect(cborEncoded, contains('fmt'));
     expect(cborEncoded['fmt'].toString(), equals('none'));
@@ -144,8 +181,31 @@ void main() {
     expect(cborEncoded, contains('attStmt'));
 
     final credentialId = attObj.getCredentialId();
-    // TODO generate an assertion base on the credential ID
-  });
+
+    // Generate an assertion using the generated credential
+    final assertionOptions =
+        GetAssertionOptions.fromJson(jsonDecode(getAssertionJson));
+    assertionOptions.allowCredentialDescriptorList = [
+      ...assertionOptions.allowCredentialDescriptorList ?? [],
+      PublicKeyCredentialDescriptor(
+          type: PublicKeyCredentialType.publicKey, id: credentialId),
+    ];
+
+    final assertionObj = await authenticator.getAssertion(assertionOptions);
+    final resultBytes = BytesBuilder()
+      ..add(assertionObj.authenticatorData)
+      ..add(assertionOptions.clientDataHash);
+    final signedData = resultBytes.toBytes();
+
+    final sourceCredential = (await authenticator.credentialSafe
+            .getKeysForEntity(credentialOptions.rpEntity.id))
+        .last;
+    final keyPair = await authenticator.credentialSafe
+        .getKeyPairByAlias(sourceCredential.keyPairAlias);
+    final verifySigned = authenticator.crytography.verifySignature(
+        keyPair!.publicKey!, signedData, assertionObj.signature);
+    expect(verifySigned, isTrue);
+  }, tags: ['debug']);
 
   test('excluded credentials', () async {
     final options =
@@ -157,8 +217,7 @@ void main() {
       ...options.excludeCredentialDescriptorList ?? [],
       PublicKeyCredentialDescriptor(
           type: PublicKeyCredentialType.publicKey,
-          id: attObj.getCredentialId(),
-          transports: null),
+          id: attObj.getCredentialId()),
     ];
 
     expect(

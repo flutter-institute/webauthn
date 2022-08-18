@@ -15,7 +15,7 @@ class PublicKeyCredentialDescriptor {
   PublicKeyCredentialDescriptor({
     required this.type,
     required this.id,
-    required this.transports,
+    this.transports,
   });
 
   @PublicKeyCredentialConverter()

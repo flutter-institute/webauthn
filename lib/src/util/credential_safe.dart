@@ -121,12 +121,9 @@ class CredentialSafe {
   }
 
   Future<int> incrementCredentialUseCounter(Credential credential) async {
-    if (credential.id != null) {
-      credential.keyUseCounter =
-          await _credentialSchema.incrementUseCounter(credential.id!);
-      return credential.keyUseCounter;
-    }
-    return 0;
+    return credential.id == null
+        ? 0
+        : await _credentialSchema.incrementUseCounter(credential.id!);
   }
 
   /// Checks whether this key requires user verification or not.

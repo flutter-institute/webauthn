@@ -1,7 +1,9 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:crypto_keys/crypto_keys.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:logger/logger.dart';
 
@@ -10,9 +12,11 @@ import 'db/credential.dart';
 import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
 import 'helpers/numbers.dart';
+import 'models/assertion.dart';
 import 'models/attestation.dart';
 import 'models/authentication_localization_options.dart';
 import 'models/cred_type_pub_key_algo_pair.dart';
+import 'models/get_assertion_options.dart';
 import 'models/make_credential_options.dart';
 import 'models/none_attestation.dart';
 import 'util/credential_safe.dart';
@@ -59,7 +63,17 @@ class Authenticator {
   final WebauthnCrytography _crypto;
   final LocalAuthentication _localAuth;
 
-  final Logger logger = Logger();
+  final Logger _logger = Logger();
+
+  @visibleForTesting
+  CredentialSafe get credentialSafe {
+    return _credentialSafe;
+  }
+
+  @visibleForTesting
+  WebauthnCrytography get crytography {
+    return _crypto;
+  }
 
   /// Perform the authenticatorMakeCredential operation as defined by the WebAuthn spec
   /// @see https://www.w3.org/TR/webauthn/#sctn-op-make-cred
@@ -78,7 +92,7 @@ class Authenticator {
     // Step 1: check if all supplied parameters are syntactically well-formed and of the correct length
     final optionsError = options.hasError();
     if (optionsError != null) {
-      logger.w(
+      _logger.w(
           'Credential options are not syntactically well-formed: $optionsError');
       throw InvalidArgumentException(optionsError,
           arguments: {'options': options});
@@ -86,7 +100,7 @@ class Authenticator {
 
     // Step 2: Check if we support a compatible credential type
     if (!options.credTypesAndPubKeyAlgs.contains(ES256_COSE)) {
-      logger.w('Only ES256 is supported');
+      _logger.w('Only ES256 is supported');
       throw InvalidArgumentException(
           'Options must include the ES256 algorithm');
     }
@@ -113,7 +127,7 @@ class Authenticator {
     final supportsUserVerifiation =
         await _credentialSafe.supportsUserVerification();
     if (options.requireUserVerification && !supportsUserVerifiation) {
-      logger.w('User verification is required but not available');
+      _logger.w('User verification is required but not available');
       throw CredentialCreationException(
           'User verification is required but not available');
     }
@@ -128,7 +142,7 @@ class Authenticator {
       credentialSource = await _credentialSafe.generateCredential(
           options.rpEntity.id, options.userEntity.id, options.userEntity.name);
     } on Exception catch (e) {
-      logger.w('Couldn\'t generate credential', e);
+      _logger.w('Couldn\'t generate credential', e);
       throw CredentialCreationException('Couldn\'t generate credential');
     }
 
@@ -181,12 +195,110 @@ class Authenticator {
     // the user's conset to create a credential etc)
     if (excludeFlag) {
       await _credentialSafe.deleteCredential(credentialSource);
-      logger.w('Credential is excluded by excludeCredentialDescriptorList');
+      _logger.w('Credential is excluded by excludeCredentialDescriptorList');
       throw CredentialCreationException(
           'Credential is excluded by excludeCredentialDescriptorList');
     }
 
     return attestation;
+  }
+
+  Future<Assertion> getAssertion(GetAssertionOptions options,
+      {AuthenticationLocalizationOptions localizationOptions =
+          const AuthenticationLocalizationOptions()}) async {
+    // Step 1: Check if all supplied parameters are well-formed
+    final optionsError = options.hasError();
+    if (optionsError != null) {
+      _logger.w(
+          'Assertion options are not syntactically well-formed: $optionsError');
+      throw InvalidArgumentException(optionsError,
+          arguments: {'options': options});
+    }
+
+    // Step 2-3: Parse allowCredentialDescriptorList
+    // This is done after we fetch the keys from the DB
+
+    // Step 4-5: Get keys that match this relying party ID
+    var credentials = await _credentialSafe.getKeysForEntity(options.rpId);
+
+    // Step 2-3: Actually parse allowCredentialDescriptorList
+    if (options.allowCredentialDescriptorList != null &&
+        options.allowCredentialDescriptorList!.isNotEmpty) {
+      final filteredCredentials = <Credential>[];
+
+      const eq = ListEquality();
+      final allowedCredentials = HashSet<Uint8List>(
+        equals: eq.equals,
+        hashCode: eq.hash,
+      );
+      for (var descriptor in options.allowCredentialDescriptorList!) {
+        allowedCredentials.add(descriptor.id);
+      }
+
+      for (var credential in credentials) {
+        if (allowedCredentials.contains(credential.keyId)) {
+          filteredCredentials.add(credential);
+        }
+      }
+
+      credentials = filteredCredentials;
+    }
+
+    // Step 6: Error if none exist
+    if (credentials.isEmpty) {
+      final message = 'No credentials exist for rpId: ${options.rpId}';
+      _logger.w(message);
+      throw GetAssertionException(message);
+    }
+
+    // Step 7: Allow the user to pick a specific credential, get verification
+    late Credential selectedCredential;
+    if (credentials.length == 1) {
+      selectedCredential = credentials[0];
+    } else {
+      // TODO implement selector
+      throw GetAssertionException('Cannot selected credential, yet');
+    }
+
+    Signer<PrivateKey>? signer;
+
+    // Get verification if necessary
+    final keyNeedsUnlocking = await _credentialSafe
+            .keyRequiresVerification(selectedCredential.keyPairAlias) ??
+        false;
+    if (options.requireUserVerification || keyNeedsUnlocking) {
+      final reason = localizationOptions.localizedReason ??
+          'Authenticate to create an assertion';
+
+      final success = await _localAuth.authenticate(
+          localizedReason: reason,
+          authMessages: localizationOptions.authMessages,
+          options: AuthenticationOptions(
+            useErrorDialogs: localizationOptions.userErrorDialogs,
+          ));
+
+      // If we failed, error out
+      if (!success) {
+        throw CredentialCreationException(
+            'Failed to authenticate with biometrics');
+      }
+
+      // Create a signer to use for this
+      // TODO this should be passed to the biometrics and we should get another
+      // signer back that we can use. Unless that is impossible... ... ...
+      // Unless passing that signer means that the auth is going to try to use
+      // something in the native android keychain. Because our key isn't there.
+      // In which case the flutter_biometrics plugin might work exactly as we need.
+      final keyPair = await _credentialSafe
+          .getKeyPairByAlias(selectedCredential.keyPairAlias);
+      if (keyPair == null) {
+        throw KeyPairNotFound(selectedCredential.keyPairAlias);
+      }
+      signer = WebauthnCrytography.createSigner(keyPair.privateKey!);
+    }
+
+    // Step 8-13
+    return await createAssertion(options, selectedCredential, signer);
   }
 
   /// The second half of the makeCredential process
@@ -195,6 +307,7 @@ class Authenticator {
       MakeCredentialOptions options, Credential credential,
       [Signer<PrivateKey>? signer]) async {
     // TODO Step 9: process extensions
+    // Current not supported
 
     // Step 10: Allocate a signature counter for the new credential, initialized at 0
     // It is created and initialized to 0 during creation
@@ -244,7 +357,7 @@ class Authenticator {
   /// @see https://www.w3.org/TR/webauthn/#sec-authenticator-data
   @visibleForTesting
   Future<Uint8List> constructAuthenticatorData(
-      Uint8List rpIdHash, Uint8List credentialData, int authCounter) async {
+      Uint8List rpIdHash, Uint8List? credentialData, int authCounter) async {
     if (rpIdHash.length != shaLength) {
       throw InvalidArgumentException(
           'rpIdHash must be a $shaLength-byte SHA-256 hash',
@@ -255,7 +368,7 @@ class Authenticator {
     if (await _credentialSafe.supportsUserVerification()) {
       flags |= (0x01 << 2); // user verified
     }
-    if (credentialData.isNotEmpty) {
+    if (credentialData != null && credentialData.isNotEmpty) {
       flags |= (0x01 << 6); // attested credential data included
     }
 
@@ -263,7 +376,7 @@ class Authenticator {
       ..add(rpIdHash)
       ..addByte(flags)
       ..add(int32ToBytes(authCounter));
-    if (credentialData.isNotEmpty) {
+    if (credentialData != null && credentialData.isNotEmpty) {
       data.add(credentialData);
     }
     return data.toBytes();
@@ -310,5 +423,58 @@ class Authenticator {
 
     // return PackedSelfAttestationObject(authenticatorData, signatureBytes);
     return NoneAttestation(authenticatorData);
+  }
+
+  @visibleForTesting
+  Future<Assertion> createAssertion(GetAssertionOptions options,
+      Credential credential, Signer<PrivateKey>? signer) async {
+    late Uint8List signature;
+    late Uint8List authenticatorData;
+    try {
+      // TODO Step 8: Process extensions
+      // Currently not supported
+
+      // Step 9: Increment signature counter
+      int authCounter =
+          await _credentialSafe.incrementCredentialUseCounter(credential);
+
+      // Step 10: Constructor authenticator data
+      final rpIdHash = WebauthnCrytography.sha256(options.rpId);
+      authenticatorData =
+          await constructAuthenticatorData(rpIdHash, null, authCounter);
+
+      // Step 11: Sign the concatenation authenticatorData || hash
+      final data = BytesBuilder()
+        ..add(authenticatorData)
+        ..add(options.clientDataHash);
+      final toSign = data.toBytes();
+
+      PrivateKey? privateKey;
+      if (signer == null) {
+        // Get the key for signing
+        final keyPair =
+            await _credentialSafe.getKeyPairByAlias(credential.keyPairAlias);
+        if (keyPair == null) {
+          throw KeyPairNotFound(credential.keyPairAlias);
+        }
+        privateKey = keyPair.privateKey;
+      }
+
+      signature = _crypto.performSignature(toSign,
+          privateKey: privateKey, signer: signer);
+    } catch (e) {
+      // Step 12: Throw if any errors occured while generating the assertion signature
+      _logger.e('Exception occured while generating assertion', e);
+      throw GetAssertionException(
+          'Exception occured while generating assertion');
+    }
+
+    // Step 13: package up the results
+    return Assertion(
+      selectedCredentialId: credential.keyId,
+      authenticatorData: authenticatorData,
+      signature: signature,
+      selectedCredentialUserHandle: credential.userHandle,
+    );
   }
 }
