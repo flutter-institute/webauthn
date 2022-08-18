@@ -64,10 +64,10 @@ BigInt bytesToBigInt(Uint8List bytes, [Endian endian = Endian.big]) {
     var back = read(mid, end);
     if (endian == Endian.little) {
       // Move the back bits to the left
-      back *= (BigInt.one << ((mid - start) * 8));
+      back <<= ((mid - start) * 8);
     } else {
       // Move the front bits to the left
-      front *= (BigInt.one << ((end - mid) * 8));
+      front <<= ((end - mid) * 8);
     }
     final result = front + back;
     return result;
