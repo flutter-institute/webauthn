@@ -35,5 +35,6 @@ dev_dependencies:
   json_serializable: ^6.3.1
   mockito: 5.2.0 # Mockito 5.3.0 is incompatible with isar. They require different version of the analyzer. Mockito 5.2.0 solves this issue.
   sqflite_common_ffi: ^2.1.1+1
+  collection: ^1.16.0
 
 flutter:

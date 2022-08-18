@@ -21,19 +21,22 @@ class CredentialSafe {
     this.strongboxRequired = true,
     CredentialSchema? credentialSchema,
     FlutterSecureStorage? storageInst,
+    LocalAuthentication? localAuth,
   })  : _credentialSchema = credentialSchema ?? CredentialSchema(),
-        _storage = storageInst ?? const FlutterSecureStorage();
+        _storage = storageInst ?? const FlutterSecureStorage(),
+        _localAuth = localAuth ?? LocalAuthentication();
 
   final bool authenticationRequired;
   final bool strongboxRequired;
   final FlutterSecureStorage _storage;
   final CredentialSchema _credentialSchema;
+  final LocalAuthentication _localAuth;
 
   static final keyCurve = curves.p256;
 
   Future<bool> supportsUserVerification() async {
     if (authenticationRequired) {
-      return await LocalAuthentication().isDeviceSupported();
+      return await _localAuth.isDeviceSupported();
     }
     return false;
   }
@@ -89,7 +92,7 @@ class CredentialSafe {
     final credential = Credential.forKey(rpEntityId, userHandle, username,
         authenticationRequired, strongboxRequired);
     // return not captured -- we will retrieve it later
-    _generateNewES256KeyPair(credential.keyPairAlias);
+    await _generateNewES256KeyPair(credential.keyPairAlias);
 
     return _credentialSchema.insert(credential);
   }
@@ -134,6 +137,7 @@ class CredentialSafe {
   }
 
   /// Encode an EC public key in the COSE/CBOR format
+  /// Return should be 77 bytes
   static Uint8List coseEncodePublicKey(PublicKey publicKey) {
     // This only works with our EcPublicKeys
     if (publicKey is! EcPublicKey) {
@@ -144,18 +148,19 @@ class CredentialSafe {
     // because of this, we want to strip off the high zero bytes if any of
     // these numbers is a negative. The two's complement of the value is what
     // we want to save
-    final xCoord = publicKey.xCoordinate.toBytes(maxBits: 32);
+    final xCoord = publicKey.xCoordinate.toBytes(maxBytes: 32);
     assert(xCoord.length == 32);
-    final yCoord = publicKey.yCoordinate.toBytes(maxBits: 32);
+    final yCoord = publicKey.yCoordinate.toBytes(maxBytes: 32);
     assert(yCoord.length == 32);
 
     final encoded = cbor.encode(CborMap({
       const CborSmallInt(1): const CborSmallInt(2), // kty: ECS key type
       const CborSmallInt(3): const CborSmallInt(-7), // alg: ES256 sig algorithm
       const CborSmallInt(-1): const CborSmallInt(1), // crv: P-256 curve
-      const CborSmallInt(-2): CborBigInt.fromBytes(xCoord), // x-coord
-      const CborSmallInt(-3): CborBigInt.fromBytes(yCoord), // y-coord
+      const CborSmallInt(-2): CborBytes(xCoord), // x-coord
+      const CborSmallInt(-3): CborBytes(yCoord), // y-coord
     }));
+
     return Uint8List.fromList(encoded);
   }
 }

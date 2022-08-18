@@ -14,14 +14,17 @@ abstract class Attestation {
     // The credential ID is stored within the attested credential data section
     // of the attestion object.
     // Field lengths are as follows (in bytes)
-    // rpId = 32, flags = 1, counter = 4, AAGUID = 16, L = 2, credential ID = L
+    // rpId = 32, flags = 1, counter = 4, AAGUID = 16, L = 2, credential ID = L, publicKey...
+
+    // | AAGUID | L | credentialId | credentialPublicKey |
+    // |   16   | 2 |      32      |          n          |
+    // total size: 50+n (for ES256 keypair, n = 77), so total size is 127
 
     // Get L, which is at offset 53 (and is big-endian)
-    // final l = (authData[53] << 8) + authData[54];
-    // if we run into bad data problems, use `55 + l` as the `end` for the sublist
+    final l = (authData[53] << 8) + authData[54];
 
     // Retrive the credential id field from offset 55
-    return authData.sublist(55);
+    return authData.sublist(55, 55 + l);
   }
 
   /// Retrieves the credential_id field from the attestation object and converts

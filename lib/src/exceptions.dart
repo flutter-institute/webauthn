@@ -6,13 +6,13 @@ class InvalidArgumentException implements Exception {
   final Map<String, dynamic> arguments;
 }
 
-class AuthenticationFailed implements Exception {
-  AuthenticationFailed(this.message);
+class CredentialCreationException implements Exception {
+  CredentialCreationException(this.message);
 
   final String message;
 }
 
-class KeyPairNotFound extends AuthenticationFailed {
+class KeyPairNotFound extends CredentialCreationException {
   KeyPairNotFound(String keyPairAlias)
       : super('KeyPair not found for \'$keyPairAlias\'');
 }

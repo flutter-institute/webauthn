@@ -4,7 +4,7 @@ import 'package:crypto/crypto.dart' as c;
 import 'package:crypto_keys/crypto_keys.dart';
 
 import '../exceptions.dart';
-import '../helpers/bigint.dart';
+import '../helpers/numbers.dart';
 
 class WebauthnCrytography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;

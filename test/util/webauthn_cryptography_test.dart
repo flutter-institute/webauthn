@@ -84,14 +84,11 @@ void main() {
     });
   });
 
-  group('signatures', () {
-    test(
-      'transforms an openssl signature to a crypto_keys signature',
-      () {
-        final localKey = WebauthnCrytography.DERToSignature(signatureOpenSSL);
-        expect(localKey, equals(signatureCryptoKeys));
-      },
-    );
+  group('transformations', () {
+    test('transforms an openssl signature to a crypto_keys signature', () {
+      final localKey = WebauthnCrytography.DERToSignature(signatureOpenSSL);
+      expect(localKey, equals(signatureCryptoKeys));
+    });
 
     test(
       'transforms a DER signature to a crypto_keys signature',
