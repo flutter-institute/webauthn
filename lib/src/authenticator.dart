@@ -81,7 +81,7 @@ class Authenticator {
   /// The [options] to create the credential should be passed. An [Attestation]
   /// containing the new credential and attestation information is returned.
   Future<Attestation> makeCredential(MakeCredentialOptions options,
-      {AuthenticationLocalizationOptions localizationOptions =
+      {var localizationOptions =
           const AuthenticationLocalizationOptions()}) async {
     // We are going to use a flag rather than explicitly invoking deny-behavior
     // because the spec asks us to pretend everything is normal while asynchronous
@@ -204,7 +204,7 @@ class Authenticator {
   }
 
   Future<Assertion> getAssertion(GetAssertionOptions options,
-      {AuthenticationLocalizationOptions localizationOptions =
+      {var localizationOptions =
           const AuthenticationLocalizationOptions()}) async {
     // Step 1: Check if all supplied parameters are well-formed
     final optionsError = options.hasError();
@@ -363,6 +363,8 @@ class Authenticator {
           'rpIdHash must be a $shaLength-byte SHA-256 hash',
           arguments: {'rpIdHash': rpIdHash});
     }
+    // | rpIdHash | flags | useCounter | authenticatorData
+    // |    32    |   1   |     4      |     127 or 0
 
     int flags = 0x01; // user present
     if (await _credentialSafe.supportsUserVerification()) {

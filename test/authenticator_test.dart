@@ -205,7 +205,7 @@ void main() {
     final verifySigned = authenticator.crytography.verifySignature(
         keyPair!.publicKey!, signedData, assertionObj.signature);
     expect(verifySigned, isTrue);
-  }, tags: ['debug']);
+  });
 
   test('excluded credentials', () async {
     final options =
