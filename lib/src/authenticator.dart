@@ -257,7 +257,7 @@ class Authenticator {
       selectedCredential = credentials[0];
     } else {
       // TODO implement selector
-      throw GetAssertionException('Cannot selected credential, yet');
+      selectedCredential = credentials.last;
     }
 
     Signer<PrivateKey>? signer;

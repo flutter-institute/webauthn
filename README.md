@@ -138,4 +138,4 @@ Create the options object from JSON:
 final getAssertionOptions = GetAssertionOptions.fromJson(options);
 ```
 
-Step 7 of [authenticatorGetAssertion](https://www.w3.org/TR/webauthn/#sctn-op-get-assertion) requires that the authenticator prompt a credential selection. This has not yet been implemented, so the first credential is currently used.
+Step 7 of [authenticatorGetAssertion](https://www.w3.org/TR/webauthn/#sctn-op-get-assertion) requires that the authenticator prompt a credential selection. This has not yet been implemented, so the last credential is currently used.
