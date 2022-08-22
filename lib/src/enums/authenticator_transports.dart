@@ -1,3 +1,4 @@
+/// Transports that cna be used for an Authenticator
 enum AuthenticatorTransports {
   usb,
   nfc,

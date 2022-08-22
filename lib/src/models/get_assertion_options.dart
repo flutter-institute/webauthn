@@ -6,6 +6,7 @@ import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
 
 part 'generated/get_assertion_options.g.dart';
 
+/// Options to be passed with Getting an Assertion
 @JsonSerializable()
 class GetAssertionOptions {
   GetAssertionOptions({

@@ -10,6 +10,9 @@ import 'converters/uint8list_converter.dart';
 
 part 'generated/public_key_credential_descriptor.g.dart';
 
+/// Information that the auth server sends to describe public keys that they
+/// have associated with a given username. We can then use this list while
+/// creating an Attestation to prove me own the private key associated with [id].
 @JsonSerializable()
 class PublicKeyCredentialDescriptor {
   PublicKeyCredentialDescriptor({

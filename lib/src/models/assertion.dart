@@ -5,6 +5,10 @@ import 'package:webauthn/src/models/converters/uint8list_converter.dart';
 
 part 'generated/assertion.g.dart';
 
+/// An assertion to prove that the [selectedCredentialId] is owned by
+/// the user who is using the authenticator. The auth server can verify
+/// this assertion using the [authenticatorData] and the [signature]
+/// that is returned.
 @JsonSerializable(converters: [Uint8ListConverter()])
 class Assertion {
   @JsonKey(name: 'selected_credential_id')

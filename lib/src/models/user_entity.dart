@@ -6,6 +6,8 @@ import 'converters/uint8list_converter.dart';
 
 part 'generated/user_entity.g.dart';
 
+/// Information from the relying party about the user that the
+/// operation relates to
 @JsonSerializable()
 class UserEntity {
   UserEntity({

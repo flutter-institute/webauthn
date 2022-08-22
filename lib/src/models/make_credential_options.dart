@@ -12,6 +12,7 @@ import 'user_entity.dart';
 
 part 'generated/make_credential_options.g.dart';
 
+/// Options to be passed when we are Making a new Credential (attestation)
 @JsonSerializable(explicitToJson: true, anyMap: true)
 class MakeCredentialOptions {
   MakeCredentialOptions({

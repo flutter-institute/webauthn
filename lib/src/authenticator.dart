@@ -65,11 +65,13 @@ class Authenticator {
 
   final Logger _logger = Logger();
 
+  /// The secure store for our credentials
   @visibleForTesting
   CredentialSafe get credentialSafe {
     return _credentialSafe;
   }
 
+  /// The crypto handling functinality
   @visibleForTesting
   WebauthnCrytography get crytography {
     return _crypto;
@@ -189,7 +191,7 @@ class Authenticator {
     }
 
     // Steps 8-13, with the optional signer
-    attestation = await createAttestation(options, credentialSource, signer);
+    attestation = await _createAttestation(options, credentialSource, signer);
 
     // We finish up Step 3 here by checking excludeFlag at the end (so we've still gotten
     // the user's conset to create a credential etc)
@@ -298,12 +300,11 @@ class Authenticator {
     }
 
     // Step 8-13
-    return await createAssertion(options, selectedCredential, signer);
+    return await _createAssertion(options, selectedCredential, signer);
   }
 
   /// The second half of the makeCredential process
-  @visibleForTesting
-  Future<Attestation> createAttestation(
+  Future<Attestation> _createAttestation(
       MakeCredentialOptions options, Credential credential,
       [Signer<PrivateKey>? signer]) async {
     // TODO Step 9: process extensions
@@ -314,24 +315,23 @@ class Authenticator {
 
     // Step 11: Generate attested credential data
     final attestedCredentialData =
-        await constructAttestedCredentialData(credential); // 127 bytes
+        await _constructAttestedCredentialData(credential); // 127 bytes
     assert(attestedCredentialData.length == 127);
 
     // Step 12: Create authenticatorData byte array
     final rpIdHash = WebauthnCrytography.sha256(options.rpEntity.id);
-    final authenticatorData = await constructAuthenticatorData(
+    final authenticatorData = await _constructAuthenticatorData(
         rpIdHash, attestedCredentialData, 0); // 164 bytes
     assert(authenticatorData.length == 164);
 
     // Step 13: Return attestation object
-    return await constructAttestation(authenticatorData, options.clientDataHash,
-        credential.keyPairAlias, signer);
+    return await _constructAttestation(authenticatorData,
+        options.clientDataHash, credential.keyPairAlias, signer);
   }
 
   /// Constructs an attestedCredentialData object per the WebAuthn Spec
   /// @see https://www.w3.org/TR/webauthn/#sec-attested-credential-data
-  @visibleForTesting
-  Future<Uint8List> constructAttestedCredentialData(
+  Future<Uint8List> _constructAttestedCredentialData(
       Credential credential) async {
     // | AAGUID | L | credentialId | credentialPublicKey |
     // |   16   | 2 |      32      |          n          |
@@ -355,8 +355,7 @@ class Authenticator {
 
   /// Constructs an authenticatorData object per the WebAuthn spec
   /// @see https://www.w3.org/TR/webauthn/#sec-authenticator-data
-  @visibleForTesting
-  Future<Uint8List> constructAuthenticatorData(
+  Future<Uint8List> _constructAuthenticatorData(
       Uint8List rpIdHash, Uint8List? credentialData, int authCounter) async {
     if (rpIdHash.length != shaLength) {
       throw InvalidArgumentException(
@@ -388,8 +387,7 @@ class Authenticator {
   /// @see https://www.w3.org/TR/webauthn/#generating-an-attestation-object
   /// A package self-attestation or "none" attestation will be returned
   /// @see https://www.w3.org/TR/webauthn/#attestation-formats
-  @visibleForTesting
-  Future<Attestation> constructAttestation(
+  Future<Attestation> _constructAttestation(
       Uint8List authenticatorData,
       Uint8List clientDataHash,
       String keyPairAlias,
@@ -427,8 +425,7 @@ class Authenticator {
     return NoneAttestation(authenticatorData);
   }
 
-  @visibleForTesting
-  Future<Assertion> createAssertion(GetAssertionOptions options,
+  Future<Assertion> _createAssertion(GetAssertionOptions options,
       Credential credential, Signer<PrivateKey>? signer) async {
     late Uint8List signature;
     late Uint8List authenticatorData;
@@ -443,7 +440,7 @@ class Authenticator {
       // Step 10: Constructor authenticator data
       final rpIdHash = WebauthnCrytography.sha256(options.rpId);
       authenticatorData =
-          await constructAuthenticatorData(rpIdHash, null, authCounter);
+          await _constructAuthenticatorData(rpIdHash, null, authCounter);
 
       // Step 11: Sign the concatenation authenticatorData || hash
       final data = BytesBuilder()

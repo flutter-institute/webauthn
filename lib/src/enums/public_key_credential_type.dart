@@ -1,3 +1,5 @@
+/// Enum for the types of public keys that are allowed
+/// Currently only "public-key" is allowed
 enum PublicKeyCredentialType {
   publicKey;
 

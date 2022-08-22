@@ -1,3 +1,8 @@
+## 0.0.2
+
+* Restricting access to the private parts of the Authenticator
+* Adding dartdoc comments to all members of the public API
+
 ## 0.0.1+1
 
 * Actually adding the changelog text

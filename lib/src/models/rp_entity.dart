@@ -2,6 +2,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'generated/rp_entity.g.dart';
 
+/// The relying party information
+/// @see https://www.w3.org/TR/webauthn/#webauthn-relying-party
 @JsonSerializable()
 class RpEntity {
   RpEntity({

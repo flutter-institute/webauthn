@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+/// This is an attestation that you own the private key for the give
+/// credentialId that is in the authData. The public key is included
+/// so that verification signatures can be exchanged.
 abstract class Attestation {
   Attestation(this.authData);
 
