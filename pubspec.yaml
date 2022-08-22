@@ -1,6 +1,6 @@
 name: webauthn
 description: A plugin implementing the WebAuthn authenticator model
-version: 0.0.1
+version: 0.0.1+1
 homepage:
 repository: https://github.com/flutter-institute/webauthn
 issue_tracker: https://github.com/flutter-institute/webauthn/issues

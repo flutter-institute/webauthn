@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto_keys/crypto_keys.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -19,7 +18,7 @@ const pubY = 'a684844334e03572f45ef91073e3d9d3cb16da16150d6f4cc4f00db78a5b6812';
 
 @GenerateMocks([FlutterSecureStorage])
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteTestInit();
 
   setUp(() async {
