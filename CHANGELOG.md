@@ -1,3 +1,7 @@
+## 0.0.3
+
+* Updating username validation to use the precis package
+
 ## 0.0.2
 
 * Restricting access to the private parts of the Authenticator

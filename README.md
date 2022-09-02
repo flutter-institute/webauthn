@@ -49,7 +49,7 @@ Any test of an object interacting with a plugin needs to have a mock created to 
 
 The main entry point to all of the functionality is the `Authenticator` object.
 
-```
+```dart
 // Authenticator(bool authencationRequired, bool strongboxRequired)
 final authenticator = Authenticator(true, true);
 ```
@@ -65,7 +65,7 @@ Note that StrongBox keystore is only available on some Android devices.
 You can create a new credential by passing a `MakeCredentialOptions` object to `Authenticator.makeCredential()`. A `MakeCredentialOptions` object can be instantiated manually or can be deserialized from the following JSON format.
 
 The JSON format mostly tracks the arguments to [authenticatorMakeCredential](https://www.w3.org/TR/webauthn/#sctn-op-make-cred) from the WebAuthn specification, with a few changes necessary for the serialization of binary data. An example is below:
-```
+```json
 {
     "authenticatorExtensions": "", // optional and currently ignored
     "clientDataHash": "LTCT/hWLtJenIgi0oUhkJz7dE8ng+pej+i6YI1QQu60=", // base64
@@ -99,17 +99,17 @@ Note that `requiresResidentKey` and `requireUserPresence` are effectively ignore
 (Per the spec, `requireUserPresence` must be the inverse of `requireUserVerification`)
 
 Create the options object from JSON:
-```
+```dart
 final makeCredentialOptions = MakeCredentialOptions.fromJson(options);
 ```
 
 Then, make a new credential with the given options:
-```
+```dart
 final attestation = authenticator.makeCredential(options);
 ```
 
 One you have an `Attestation`, you can also retrieve its CBOR representation as follows:
-```
+```dart
 Uint8List attestationBytes = attestation.toCBOR();
 ```
 
@@ -119,7 +119,7 @@ Similar to `makeCredential`, `getAssertion` takes an argument of a `GetAssertion
 
 The JSON format follows the [authenticatorGetAssertion](https://www.w3.org/TR/webauthn/#sctn-op-get-assertion) with some changes made for handling of binary data. An example is below:
 
-```
+```json
 {
     "allowCredentialDescriptorList": [{
         "id": "jVtTOKLHRMN17I66w48XWuJadCitXg0xZKaZvHdtW6RDCJhxO6Cfff9qbYnZiMQ1pl8CzPkXcXEHwpQYFknN2w==", // base64
@@ -134,7 +134,7 @@ The JSON format follows the [authenticatorGetAssertion](https://www.w3.org/TR/we
 ```
 
 Create the options object from JSON:
-```
+```dart
 final getAssertionOptions = GetAssertionOptions.fromJson(options);
 ```
 

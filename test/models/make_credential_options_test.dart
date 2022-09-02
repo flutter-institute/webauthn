@@ -10,6 +10,37 @@ import 'package:webauthn/src/models/user_entity.dart';
 import '../helpers.dart';
 
 void main() {
+  late Map<String, dynamic> json;
+
+  setUp(() {
+    json = {
+      'clientDataHash':
+          '8zrjvJoizXVkmQp5R4mVRAmXcBOWb7Go9Dw1d2uDOpU=', // f33ae3bc9a22cd7564990a794789954409977013966fb1a8f43c35776b833a95
+      'rp': {
+        'id': 'test-id',
+        'name': 'test-name',
+      },
+      'user': {
+        'id': 'BgcICQA=', // [6, 7, 8, 9, 0],
+        'displayName': 'test-display-name',
+        'name': 'test-user-name',
+      },
+      'requireResidentKey': false,
+      'requireUserPresence': true,
+      'requireUserVerification': false,
+      'credTypesAndPubKeyAlgs': [
+        ["public-key", -7],
+      ],
+      'excludeCredentials': [
+        {
+          'type': 'public-key',
+          'id': 'AQIDBA==', // [1, 2, 3, 4],
+          'transports': ['internal', 'nfc'],
+        }
+      ],
+    };
+  });
+
   test('serializes correctly', () {
     final options = MakeCredentialOptions(
       clientDataHash: ui([1, 2, 3, 4, 5]),
@@ -80,32 +111,7 @@ void main() {
   });
 
   test('deserializes correctly', () {
-    final json = {
-      'clientDataHash': 'AQIDBAU=', // [1, 2, 3, 4, 5],
-      'rp': {
-        'id': 'test-id',
-        'name': 'test-name',
-      },
-      'user': {
-        'id': 'BgcICQA=', // [6, 7, 8, 9, 0],
-        'displayName': 'test-display-name',
-        'name': 'test-user-name',
-      },
-      'requireResidentKey': false,
-      'requireUserPresence': true,
-      'requireUserVerification': false,
-      'credTypesAndPubKeyAlgs': [
-        ["public-key", -7],
-      ],
-      'excludeCredentials': [
-        {
-          'type': 'public-key',
-          'id': 'AQIDBA==', // [1, 2, 3, 4],
-          'transports': ['internal', 'nfc'],
-        }
-      ],
-    };
-
+    json['clientDataHash'] = 'AQIDBAU=';
     final options = MakeCredentialOptions.fromJson(json);
     expect(options.clientDataHash, equals([1, 2, 3, 4, 5]));
     expect(options.rpEntity, isNotNull);
@@ -134,7 +140,67 @@ void main() {
             [AuthenticatorTransports.internal, AuthenticatorTransports.nfc]));
   });
 
-  test('areWellFormed', () {
-    // TODO implement test to check validity
+  group('hasError', () {
+    // TODO implement more tests
+    test('invalid client data hash', () {
+      json['clientDataHash'] = 'AQIDBAU=';
+      final options = MakeCredentialOptions.fromJson(json);
+      expect(
+        options.hasError(),
+        allOf([
+          isNotNull,
+          contains('ClientDataHash'),
+          contains('invalid length'),
+        ]),
+      );
+    });
+
+    test('invalid rpEntity name', () {
+      final tests = [
+        'disallowed \u3032 codepoint',
+        'non \uFDD0 character',
+        'old hangul \uA960 jamo',
+        'control \u061C character',
+      ];
+
+      for (var test in tests) {
+        json['rp']['name'] = test;
+        final options = MakeCredentialOptions.fromJson(json);
+        expect(
+          options.hasError(),
+          allOf([
+            isNotNull,
+            contains('rpEntity.name'),
+            contains('non-empty string'),
+            contains('valid characters'),
+          ]),
+          reason: test,
+        );
+      }
+    });
+
+    test('invalid userEntity name', () {
+      final tests = [
+        'disallowed \u3032 codepoint',
+        'non \uFDD0 character',
+        'old hangul \uA960 jamo',
+        'control \u061C character',
+      ];
+
+      for (var test in tests) {
+        json['user']['name'] = test;
+        final options = MakeCredentialOptions.fromJson(json);
+        expect(
+          options.hasError(),
+          allOf([
+            isNotNull,
+            contains('userEntity.name'),
+            contains('non-empty string'),
+            contains('valid characters'),
+          ]),
+          reason: test,
+        );
+      }
+    });
   });
 }

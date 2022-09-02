@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
+import 'package:precis/precis.dart' as precis;
 
 import '../constants.dart' as c;
 import 'converters/cred_type_pub_key_algo_pair_converter.dart';
@@ -59,15 +60,17 @@ class MakeCredentialOptions {
     if (rpEntity.id.isEmpty) {
       return 'rpEntity.id is required.';
     }
-    // TODO enforce RFC8265 for rpEntity.name and userEntity.name - https://www.rfc-editor.org/rfc/rfc8265
-    // For now, just pick a basic rule
-    final wordsWithSomePunctuation = RegExp(r'^[\w_.-]+$');
-    if (rpEntity.name.isEmpty ||
-        !wordsWithSomePunctuation.hasMatch(rpEntity.name)) {
+
+    final profile = precis.usernameCasePreserved;
+    try {
+      profile.enforce(rpEntity.name);
+    } on Exception {
       return 'rpEntity.name must be a non-empty string with valid characters';
     }
-    if (userEntity.name.isEmpty ||
-        !wordsWithSomePunctuation.hasMatch(userEntity.name)) {
+
+    try {
+      profile.enforce(userEntity.name);
+    } on Exception {
       return 'userEntity.name must be a non-empty string with valid characters';
     }
 
