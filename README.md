@@ -1,6 +1,7 @@
 # webauthn
 
 [![Codemagic build status](https://api.codemagic.io/apps/633340e00c4aebaccd791790/633340e00c4aebaccd79178f/status_badge.svg)](https://codemagic.io/apps/633340e00c4aebaccd791790/633340e00c4aebaccd79178f/latest_build)
+[![Pub Version](https://img.shields.io/pub/v/webauthn)](https://pub.dev/packages/webauthn)
 
 This plugin is meant to implement the [WebAuthn Authenticator Model](https://www.w3.org/TR/webauthn/#sctn-authenticator-model). This model is heavily based off the [DuoLabs Android Implementation](https://github.com/duo-labs/android-webauthn-authenticator) of this library.
 
