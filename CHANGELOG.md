@@ -1,3 +1,9 @@
+## 0.0.4
+
+* Updating dependencies to latest versions
+* Unpinning mockito version
+* Adding codemagic build status
+
 ## 0.0.3
 
 * Updating username validation to use the precis package
