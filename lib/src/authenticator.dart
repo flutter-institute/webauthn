@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:typed_data';
 
+import 'package:byte_extensions/byte_extensions.dart';
 import 'package:collection/collection.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter/foundation.dart';
@@ -11,7 +12,6 @@ import 'constants.dart' as c;
 import 'db/credential.dart';
 import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
-import 'helpers/numbers.dart';
 import 'models/assertion.dart';
 import 'models/attestation.dart';
 import 'models/authentication_localization_options.dart';
@@ -347,7 +347,7 @@ class Authenticator {
 
     final data = BytesBuilder()
       ..add(List.filled(16, 0)) // AAGUID will be 16 bytes of zeros
-      ..add(int16ToBytes(credential.keyId.length))
+      ..add(credential.keyId.length.asBytes(type: IntType.int16))
       ..add(credential.keyId) // credentialId
       ..add(encodedPublicKey); // credentialPublicKey
     return data.toBytes();
@@ -376,7 +376,7 @@ class Authenticator {
     final data = BytesBuilder()
       ..add(rpIdHash)
       ..addByte(flags)
-      ..add(int32ToBytes(authCounter));
+      ..add(authCounter.asBytes(type: IntType.int32));
     if (credentialData != null && credentialData.isNotEmpty) {
       data.add(credentialData);
     }

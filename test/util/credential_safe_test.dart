@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:byte_extensions/byte_extensions.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:webauthn/src/db/db.dart';
-import 'package:webauthn/src/helpers/numbers.dart';
 import 'package:webauthn/src/util/credential_safe.dart';
 
 import '../helpers.dart';
@@ -75,7 +75,7 @@ void main() {
     expect(encoded.sublist(7, 10), equals([0x21, 0x58, 0x20]));
     expect(encoded.sublist(42, 45), equals([0x22, 0x58, 0x20]));
     // Verify keys (ensure big-endian format)
-    expect(encoded.sublist(10, 42), equals(bigIntToBytes(xCoord, Endian.big)));
-    expect(encoded.sublist(45), equals(bigIntToBytes(yCoord, Endian.big)));
+    expect(encoded.sublist(10, 42), equals(xCoord.asBytes(endian: Endian.big)));
+    expect(encoded.sublist(45), equals(yCoord.asBytes(endian: Endian.big)));
   });
 }

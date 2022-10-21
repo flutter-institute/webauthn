@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
+import 'package:byte_extensions/byte_extensions.dart';
 import 'package:crypto/crypto.dart' as c;
 import 'package:crypto_keys/crypto_keys.dart';
 
 import '../exceptions.dart';
-import '../helpers/numbers.dart';
 
 class WebauthnCrytography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;
@@ -52,12 +52,12 @@ class WebauthnCrytography {
     start = secondOffset + 1;
     final secondBytes = der.sublist(start, start + secondLength);
 
-    final first = bytesToBigInt(firstBytes);
-    final second = bytesToBigInt(secondBytes);
+    final first = firstBytes.asBigInt();
+    final second = secondBytes.asBigInt();
 
     final result = BytesBuilder()
-      ..add(bigIntToBytes(first))
-      ..add(bigIntToBytes(second));
+      ..add(first.asBytes())
+      ..add(second.asBytes());
     return result.toBytes();
   }
 

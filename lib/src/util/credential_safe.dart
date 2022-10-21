@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:byte_extensions/byte_extensions.dart';
 import 'package:cbor/cbor.dart';
 import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -8,7 +9,6 @@ import 'package:local_auth/local_auth.dart';
 
 import '../db/credential.dart';
 import '../exceptions.dart';
-import '../extensions.dart';
 
 /// CredentialSafe uses the platforms Secure Storage to generate and
 /// store ES256 keys that are hardware-backed.
@@ -145,9 +145,9 @@ class CredentialSafe {
     // because of this, we want to strip off the high zero bytes if any of
     // these numbers is a negative. The two's complement of the value is what
     // we want to save
-    final xCoord = publicKey.xCoordinate.toBytes(maxBytes: 32);
+    final xCoord = publicKey.xCoordinate.asBytes(maxBytes: 32);
     assert(xCoord.length == 32);
-    final yCoord = publicKey.yCoordinate.toBytes(maxBytes: 32);
+    final yCoord = publicKey.yCoordinate.asBytes(maxBytes: 32);
     assert(yCoord.length == 32);
 
     final encoded = cbor.encode(CborMap({

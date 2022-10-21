@@ -1,3 +1,8 @@
+## 0.0.5
+
+* Updating byte handling to use the byte_extensions package
+* Updating dependencies to latest versions
+
 ## 0.0.4
 
 * Updating dependencies to latest versions
