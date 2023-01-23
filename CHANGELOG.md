@@ -1,3 +1,7 @@
+## 0.0.5+1
+
+* Updating example app to add windows and linux sqflite support
+
 ## 0.0.5
 
 * Updating byte handling to use the byte_extensions package
