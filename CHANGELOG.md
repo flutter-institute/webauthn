@@ -1,4 +1,4 @@
-## 0.0.6
+## 0.1.0
 
 * Adding support for packed attestations when a new credential is created
 * Switching to return the new packed attestation by default
