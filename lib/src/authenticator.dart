@@ -33,7 +33,7 @@ class Authenticator {
   // ignore: constant_identifier_names
   static const ES256_COSE = CredTypePubKeyAlgoPair(
     credType: PublicKeyCredentialType.publicKey,
-    pubKeyAlgo: -7,
+    pubKeyAlgo: WebauthnCrytography.signingAlgoId,
   );
 
   /// Create a new instance of the Authenticator.
@@ -41,12 +41,12 @@ class Authenticator {
   /// Pass `true` for [authenticationRequired] if we want to require authentication
   /// before allowing the key to be accessed and used.
   /// Pass `true` for [strongboxRequired] if we want this key to be managed by the
-  /// system strongbox.
+  /// system strongbox. NOTE: this option is currently ignored because we don't
+  /// have access to the system strongbox on all the platforms.
+  /// 
   /// The default dependencies can be overwritten by passing a mock, or other instance,
-  /// to [credentialSafe] or [cryptography]
-  ///
-  /// NOTE: The options [strongboxRequired] is currently ignored because we don't
-  /// have access to the system strongbox on all the platforms
+  /// to [credentialSafe], [cryptography], or [localAuth]. These should be left as is
+  /// except when mocked for unit tests.
   Authenticator(
     bool authenticationRequired,
     bool strongboxRequired, {
@@ -337,7 +337,7 @@ class Authenticator {
   }
 
   /// Constructs an attestedCredentialData object per the WebAuthn Spec
-  /// @see https://www.w3.org/TR/webauthn/#sec-attested-credential-data
+  /// @see https://www.w3.org/TR/webauthn/#sctn-attested-credential-data
   Future<Uint8List> _constructAttestedCredentialData(
       Credential credential) async {
     // | AAGUID | L | credentialId | credentialPublicKey |
@@ -361,7 +361,7 @@ class Authenticator {
   }
 
   /// Constructs an authenticatorData object per the WebAuthn spec
-  /// @see https://www.w3.org/TR/webauthn/#sec-authenticator-data
+  /// @see https://www.w3.org/TR/webauthn/#sctn-authenticator-data
   Future<Uint8List> _constructAuthenticatorData(
       Uint8List rpIdHash, Uint8List? credentialData, int authCounter) async {
     if (rpIdHash.length != shaLength) {
@@ -393,7 +393,7 @@ class Authenticator {
   /// Construct an AttestationObject per the WebAuthn spec
   /// @see https://www.w3.org/TR/webauthn/#sctn-generating-an-attestation-object
   /// A package self-attestation or "none" attestation will be returned
-  /// @see https://www.w3.org/TR/webauthn/#attestation-formats
+  /// @see https://www.w3.org/TR/webauthn/#sctn-attestation-formats
   Future<Attestation> _constructAttestation(
     AttestationType attestationType,
     Uint8List authenticatorData,
