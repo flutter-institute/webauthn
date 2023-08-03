@@ -189,7 +189,7 @@ void main() {
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
     validateAttestationMap(cborEncoded);
 
-    final jsonEncoded = attObj.toJson();
+    final jsonEncoded = json.decode(attObj.toJson());
     jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
     validateAttestationMap(jsonEncoded);
 
@@ -215,8 +215,10 @@ void main() {
         .last;
     final keyPair = await authenticator.credentialSafe
         .getKeyPairByAlias(sourceCredential.keyPairAlias);
+    expect(keyPair, isNotNull);
+    expect(keyPair!.publicKey, isNotNull);
     final verifySigned = authenticator.crytography.verifySignature(
-        keyPair!.publicKey!, signedData, assertionObj.signature);
+        keyPair.publicKey!, signedData, assertionObj.signature);
     expect(verifySigned, isTrue);
   });
 
@@ -247,7 +249,7 @@ void main() {
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
     validateAttestationMap(cborEncoded);
 
-    final jsonEncoded = attObj.toJson();
+    final jsonEncoded = json.decode(attObj.toJson());
     jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
     jsonEncoded['attStmt']['sig'] = base64.decode(jsonEncoded['attStmt']['sig']);
     validateAttestationMap(jsonEncoded);

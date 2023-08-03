@@ -9,7 +9,7 @@ import 'attestation.dart';
 
 class PackedSelfAttestation extends Attestation {
   final Uint8List signature;
-  
+
   PackedSelfAttestation(super.authData, this.signature);
 
   @override
@@ -21,15 +21,15 @@ class PackedSelfAttestation extends Attestation {
   /// @see https://www.w3.org/TR/webauthn/#sctn-attestation
   /// @see https://www.w3.org/TR/webauthn/#sctn-packed-attestation
   @override
-  Map<String, dynamic> toJson() {
-    return {
+  String toJson() {
+    return json.encode({
       'authData': base64.encode(authData),
       'fmt': format,
       'attStmt': {
         'alg': WebauthnCrytography.signingAlgoId,
         'sig': base64.encode(signature),
       },
-    };
+    });
   }
 
   /// Encode this self-attestation object as a CBOR payload

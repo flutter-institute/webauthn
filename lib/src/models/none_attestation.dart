@@ -18,12 +18,12 @@ class NoneAttestation extends Attestation {
   /// @see https://www.w3.org/TR/webauthn/#sctn-attestation
   /// @see https://www.w3.org/TR/webauthn/#sctn-none-attestation
   @override
-  Map<String, dynamic> toJson() {
-    return {
+  String toJson() {
+    return json.encode({
       'authData': base64.encode(authData),
       'fmt': format,
       'attStmt': {},
-    };
+    });
   }
 
   /// Encode this self-attestation object as a CBOR payload

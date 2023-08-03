@@ -219,6 +219,45 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _showCredentialDetails(CredentialData credential) {
+    const encoder = JsonEncoder.withIndent('  ');
+    final rawJson = credential.attestation.toJson();
+    final prettyJson = encoder.convert(json.decode(rawJson));
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => Dialog.fullscreen(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Full Attestation Payload',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                prettyJson,
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: rawJson));
+                },
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -246,37 +285,75 @@ class _MyHomePageState extends State<MyHomePage> {
                   reverse: true,
                   shrinkWrap: true,
                   itemBuilder: (context, index) {
-                    final creds = _credentials[index];
+                    // Header row
+                    if (index == _credentials.length) {
+                      return const SizedBox(
+                        height: 50,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Username',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Credential ID',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-                    return Container(
-                      color: (_highlightCredentialIdx != null &&
-                              _highlightCredentialIdx == index)
-                          ? theme.colorScheme.secondary
-                          : theme.scaffoldBackgroundColor,
-                      height: 50,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 1,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: SelectableText(creds.username),
+                    final creds = _credentials[index];
+                    onCredentialTap() {
+                      _showCredentialDetails(creds);
+                    }
+
+                    return InkWell(
+                      onTap: onCredentialTap,
+                      child: Container(
+                        color: (_highlightCredentialIdx != null &&
+                                _highlightCredentialIdx == index)
+                            ? theme.colorScheme.secondary
+                            : theme.scaffoldBackgroundColor,
+                        height: 50,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                child: SelectableText(
+                                  creds.username,
+                                  onTap: onCredentialTap,
+                                ),
+                              ),
                             ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: SelectableText(
-                                  creds.attestation.getCredentialIdBase64()),
+                            Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: SelectableText(
+                                  creds.attestation.getCredentialIdBase64(),
+                                  onTap: onCredentialTap,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
                   separatorBuilder: (context, index) => const Divider(),
-                  itemCount: _credentials.length,
+                  itemCount: _credentials.isEmpty ? 0 : _credentials.length + 1,
                 ),
               ),
               TextFormField(

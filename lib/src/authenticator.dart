@@ -43,7 +43,7 @@ class Authenticator {
   /// Pass `true` for [strongboxRequired] if we want this key to be managed by the
   /// system strongbox. NOTE: this option is currently ignored because we don't
   /// have access to the system strongbox on all the platforms.
-  /// 
+  ///
   /// The default dependencies can be overwritten by passing a mock, or other instance,
   /// to [credentialSafe], [cryptography], or [localAuth]. These should be left as is
   /// except when mocked for unit tests.
@@ -276,6 +276,12 @@ class Authenticator {
             .keyRequiresVerification(selectedCredential.keyPairAlias) ??
         false;
     if (options.requireUserVerification || keyNeedsUnlocking) {
+      // Verify that user verification is available
+      if (!await _credentialSafe.supportsUserVerification()) {
+        _logger.w('User verification is required but not available');
+        throw GetAssertionException('User verification is required but not available');
+      }
+
       final reason = localizationOptions.localizedReason ??
           'Authenticate to create an assertion';
 
@@ -288,7 +294,7 @@ class Authenticator {
 
       // If we failed, error out
       if (!success) {
-        throw CredentialCreationException(
+        throw GetAssertionException(
             'Failed to authenticate with biometrics');
       }
 
