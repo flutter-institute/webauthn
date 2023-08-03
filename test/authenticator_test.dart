@@ -12,12 +12,14 @@ import 'package:mockito/mockito.dart';
 import 'package:webauthn/src/authenticator.dart';
 import 'package:webauthn/src/constants.dart';
 import 'package:webauthn/src/db/credential.dart';
+import 'package:webauthn/src/enums/attestation_type.dart';
 import 'package:webauthn/src/enums/public_key_credential_type.dart';
 import 'package:webauthn/src/exceptions.dart';
 import 'package:webauthn/src/models/get_assertion_options.dart';
 import 'package:webauthn/src/models/make_credential_options.dart';
 import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
 import 'package:webauthn/src/util/credential_safe.dart';
+import 'package:webauthn/src/util/webauthn_cryptography.dart';
 
 import 'authenticator_test.mocks.dart';
 
@@ -164,21 +166,91 @@ void main() {
     expect(attObj, isNotNull);
   });
 
-  test('make credential creates a valid attestation', () async {
+  test('makeCredential creates a valid none attestation', () async {
     final authenticator = getSut();
 
     final credentialOptions =
         MakeCredentialOptions.fromJson(jsonDecode(makeCredentialJson));
-    final attObj = await authenticator.makeCredential(credentialOptions);
+    final attObj = await authenticator.makeCredential(credentialOptions,
+        attestationType: AttestationType.none);
+
+    void validateAttestationMap(Map data) {
+      expect(data, contains('fmt'));
+      expect(data['fmt'].toString(), equals(AttestationType.none.value));
+      expect(data, contains('authData'));
+      expect(
+        data['authData'] as List,
+        hasLength(authenticationDataLength),
+      );
+      expect(data, contains('attStmt'));
+      expect(data['attStmt'] as Map, isEmpty);
+    }
+
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
-    expect(cborEncoded, contains('fmt'));
-    expect(cborEncoded['fmt'].toString(), equals('none'));
-    expect(cborEncoded, contains('authData'));
-    expect(
-      (cborEncoded['authData'] as List),
-      hasLength(authenticationDataLength),
-    );
-    expect(cborEncoded, contains('attStmt'));
+    validateAttestationMap(cborEncoded);
+
+    final jsonEncoded = attObj.toJson();
+    jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
+    validateAttestationMap(jsonEncoded);
+
+    final credentialId = attObj.getCredentialId();
+
+    // Generate an assertion using the generated credential
+    final assertionOptions =
+        GetAssertionOptions.fromJson(jsonDecode(getAssertionJson));
+    assertionOptions.allowCredentialDescriptorList = [
+      ...assertionOptions.allowCredentialDescriptorList ?? [],
+      PublicKeyCredentialDescriptor(
+          type: PublicKeyCredentialType.publicKey, id: credentialId),
+    ];
+
+    final assertionObj = await authenticator.getAssertion(assertionOptions);
+    final resultBytes = BytesBuilder()
+      ..add(assertionObj.authenticatorData)
+      ..add(assertionOptions.clientDataHash);
+    final signedData = resultBytes.toBytes();
+
+    final sourceCredential = (await authenticator.credentialSafe
+            .getKeysForEntity(credentialOptions.rpEntity.id))
+        .last;
+    final keyPair = await authenticator.credentialSafe
+        .getKeyPairByAlias(sourceCredential.keyPairAlias);
+    final verifySigned = authenticator.crytography.verifySignature(
+        keyPair!.publicKey!, signedData, assertionObj.signature);
+    expect(verifySigned, isTrue);
+  });
+
+  test('makeCredential creates a valid packed attestation', () async {
+    final authenticator = getSut();
+
+    final credentialOptions =
+        MakeCredentialOptions.fromJson(jsonDecode(makeCredentialJson));
+    final attObj = await authenticator.makeCredential(credentialOptions,
+        attestationType: AttestationType.packed);
+
+    void validateAttestationMap(Map data) {
+      expect(data, contains('fmt'));
+      expect(data['fmt'].toString(), equals(AttestationType.packed.value));
+      expect(data, contains('authData'));
+      expect(
+        data['authData'] as List,
+        hasLength(authenticationDataLength),
+      );
+      expect(data, contains('attStmt'));
+      final attStmt = data['attStmt'] as Map;
+      expect(attStmt, contains('alg'));
+      expect(attStmt['alg'].toString(), equals(WebauthnCrytography.signingAlgoId.toString()));
+      expect(attStmt, contains('sig'));
+      expect(attStmt['sig'] as List, hasLength(signatureDataLength));
+    }
+
+    final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
+    validateAttestationMap(cborEncoded);
+
+    final jsonEncoded = attObj.toJson();
+    jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
+    jsonEncoded['attStmt']['sig'] = base64.decode(jsonEncoded['attStmt']['sig']);
+    validateAttestationMap(jsonEncoded);
 
     final credentialId = attObj.getCredentialId();
 

@@ -5,11 +5,18 @@ import 'dart:typed_data';
 /// credentialId that is in the authData. The public key is included
 /// so that verification signatures can be exchanged.
 abstract class Attestation {
-  Attestation(this.authData);
-
   final Uint8List authData;
 
+  Attestation(this.authData);
+
+  /// Returns the format of the attestation
+  String get format;
+
+  /// Returns the attestation in its CBOR packed representation
   Uint8List asCBOR();
+
+  /// Returns the attestation in its JSON packed representation
+  Map<String, dynamic> toJson();
 
   /// Retrieves the credential_id field from the attestation object
   /// @see Figure 5 is helpful: https://www.w3.org/TR/webauthn/#attestation-object

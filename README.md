@@ -46,7 +46,7 @@ The test suite can be run using `flutter test` command.
 
 ### Sqlite Test Setup
 
-Any test of an object interacting with a plugin needs to have a mock created to abstract out the plugin's behavior. The one exception to this is the `db/` tests that were designed to valid that the queries return the expected data. This is accomplished using the [sqflite_common_ffi](https://pub.dev/packages/sqflite_common_ffi) package. Depending on what platform you are using, you will need to follow the [Getting Started](https://pub.dev/packages/sqflite_common_ffi#getting-started) steps for your platform to make sure that you have valid sqlite3 libraries on your system.
+Any test of an object interacting with a plugin needs to have a mock created to abstract out the plugin's behavior. The one exception to this is the `db/` tests that were designed to validate that the queries return the expected data. This is accomplished using the [sqflite_common_ffi](https://pub.dev/packages/sqflite_common_ffi) package. Depending on what platform you are using, you will need to follow the [Getting Started](https://pub.dev/packages/sqflite_common_ffi#getting-started) steps for your platform to make sure that you have valid sqlite3 libraries on your system.
 
 ## Usage
 
@@ -111,9 +111,14 @@ Then, make a new credential with the given options:
 final attestation = authenticator.makeCredential(options);
 ```
 
-One you have an `Attestation`, you can also retrieve its CBOR representation as follows:
+Once you have an `Attestation`, you can also retrieve its CBOR representation as follows:
 ```dart
 Uint8List attestationBytes = attestation.toCBOR();
+```
+
+Or you can retrieve a JSON representation as follows:
+```dart
+Map<String, dynamic> attestationJson = attestation.toJson();
 ```
 
 ### Get Assertion (User Login)

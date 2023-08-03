@@ -10,6 +10,7 @@ import 'package:logger/logger.dart';
 
 import 'constants.dart' as c;
 import 'db/credential.dart';
+import 'enums/attestation_type.dart';
 import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
 import 'models/assertion.dart';
@@ -19,6 +20,7 @@ import 'models/cred_type_pub_key_algo_pair.dart';
 import 'models/get_assertion_options.dart';
 import 'models/make_credential_options.dart';
 import 'models/none_attestation.dart';
+import 'models/packed_self_attestation.dart';
 import 'util/credential_safe.dart';
 import 'util/webauthn_cryptography.dart';
 
@@ -26,6 +28,7 @@ class Authenticator {
   // Allow external referednces
   static const shaLength = c.shaLength;
   static const authenticationDataLength = c.authenticationDataLength;
+  static const signatureDataLength = c.signatureDataLength;
 
   // ignore: constant_identifier_names
   static const ES256_COSE = CredTypePubKeyAlgoPair(
@@ -82,9 +85,11 @@ class Authenticator {
   ///
   /// The [options] to create the credential should be passed. An [Attestation]
   /// containing the new credential and attestation information is returned.
-  Future<Attestation> makeCredential(MakeCredentialOptions options,
-      {var localizationOptions =
-          const AuthenticationLocalizationOptions()}) async {
+  Future<Attestation> makeCredential(
+    MakeCredentialOptions options, {
+    var attestationType = AttestationType.packed,
+    var localizationOptions = const AuthenticationLocalizationOptions(),
+  }) async {
     // We are going to use a flag rather than explicitly invoking deny-behavior
     // because the spec asks us to pretend everything is normal while asynchronous
     // operations (like asking user consent) happen to ensure privacy guarantees.
@@ -135,7 +140,7 @@ class Authenticator {
     }
 
     // NOTE: We are switching the order of steps 6 and 7/8 because we need to have the credential
-    // created in order to  use it in a biometric prompt. We will delete the credential
+    // created in order to use it in a biometric prompt. We will delete the credential
     // if the biometric prompt fails.
 
     // Step 7: Generate a new credential
@@ -144,6 +149,7 @@ class Authenticator {
       credentialSource = await _credentialSafe.generateCredential(
           options.rpEntity.id, options.userEntity.id, options.userEntity.name);
     } on Exception catch (e) {
+      // Step 8: throw error
       _logger.w('Couldn\'t generate credential', e);
       throw CredentialCreationException('Couldn\'t generate credential');
     }
@@ -166,7 +172,7 @@ class Authenticator {
       // TODO local_auth is not going to work for what we need here.
       // It is not returning the signature from keystore. If we look
       // at the flutter_biometrics plugin, it is much closer. It is not
-      // actually letting us pass a crypto object and it is discgarding
+      // actually letting us pass a crypto object and it is discarding
       // the local credential and creating a new key. We're probably
       // going to need our own solution in the future
 
@@ -190,8 +196,9 @@ class Authenticator {
       signer = WebauthnCrytography.createSigner(keyPair.privateKey!);
     }
 
-    // Steps 8-13, with the optional signer
-    attestation = await _createAttestation(options, credentialSource, signer);
+    // Steps 9-13, with the optional signer
+    attestation = await _createAttestation(
+        attestationType, options, credentialSource, signer);
 
     // We finish up Step 3 here by checking excludeFlag at the end (so we've still gotten
     // the user's conset to create a credential etc)
@@ -304,7 +311,7 @@ class Authenticator {
   }
 
   /// The second half of the makeCredential process
-  Future<Attestation> _createAttestation(
+  Future<Attestation> _createAttestation(AttestationType attestationType,
       MakeCredentialOptions options, Credential credential,
       [Signer<PrivateKey>? signer]) async {
     // TODO Step 9: process extensions
@@ -322,10 +329,10 @@ class Authenticator {
     final rpIdHash = WebauthnCrytography.sha256(options.rpEntity.id);
     final authenticatorData = await _constructAuthenticatorData(
         rpIdHash, attestedCredentialData, 0); // 164 bytes
-    assert(authenticatorData.length == 164);
+    assert(authenticatorData.length == authenticationDataLength);
 
     // Step 13: Return attestation object
-    return await _constructAttestation(authenticatorData,
+    return await _constructAttestation(attestationType, authenticatorData,
         options.clientDataHash, credential.keyPairAlias, signer);
   }
 
@@ -384,16 +391,18 @@ class Authenticator {
   }
 
   /// Construct an AttestationObject per the WebAuthn spec
-  /// @see https://www.w3.org/TR/webauthn/#generating-an-attestation-object
+  /// @see https://www.w3.org/TR/webauthn/#sctn-generating-an-attestation-object
   /// A package self-attestation or "none" attestation will be returned
   /// @see https://www.w3.org/TR/webauthn/#attestation-formats
   Future<Attestation> _constructAttestation(
-      Uint8List authenticatorData,
-      Uint8List clientDataHash,
-      String keyPairAlias,
-      Signer<PrivateKey>? signer) async {
+    AttestationType attestationType,
+    Uint8List authenticatorData,
+    Uint8List clientDataHash,
+    String keyPairAlias,
+    Signer<PrivateKey>? signer,
+  ) async {
     // We are going to create a signature over the relevant data fields.
-    // See https://www.w3.org/TR/webauthn/#attestation-formats
+    // See https://www.w3.org/TR/webauthn/#sctn-attestation-formats
     // We need to sign the concatenation of the authenticationData and clientDataHash
     // The Attestation knows how to CBOR encode itself
 
@@ -412,17 +421,21 @@ class Authenticator {
       ..add(clientDataHash);
 
     // Sanity check to make sure the data is the length we are expecting
-    assert(toSign.length == 164 + 32);
+    assert(toSign.length == authenticationDataLength + 32);
 
     // Sign our data
     final signatureBytes = _crypto.performSignature(toSign.toBytes(),
         privateKey: privateKey, signer: signer);
 
     // Sanity check on signature
-    assert(signatureBytes.length == 70);
+    assert(signatureBytes.length == signatureDataLength);
 
-    // return PackedSelfAttestationObject(authenticatorData, signatureBytes);
-    return NoneAttestation(authenticatorData);
+    switch (attestationType) {
+      case AttestationType.none:
+        return NoneAttestation(authenticatorData);
+      case AttestationType.packed:
+        return PackedSelfAttestation(authenticatorData, signatureBytes);
+    }
   }
 
   Future<Assertion> _createAssertion(GetAssertionOptions options,

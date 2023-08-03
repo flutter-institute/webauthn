@@ -1,3 +1,10 @@
+## 0.0.6
+
+* Adding support for packed attestations when a new credential is created
+* Switching to return the new packed attestation by default
+* Adding toJson() handling to attestation objects
+* Updating dependencies to latest versions
+
 ## 0.0.5+1
 
 * Updating example app to add windows and linux sqflite support
@@ -9,9 +16,9 @@
 
 ## 0.0.4
 
-* Updating dependencies to latest versions
 * Unpinning mockito version
 * Adding codemagic build status
+* Updating dependencies to latest versions
 
 ## 0.0.3
 

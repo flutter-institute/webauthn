@@ -8,6 +8,9 @@ import '../exceptions.dart';
 
 class WebauthnCrytography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;
+  static const signingAlgoId = -7;
+  static final keyCurve = curves.p256;
+  static const keyCurveId = 1;
 
   const WebauthnCrytography();
 
