@@ -91,27 +91,40 @@ class _MyHomePageState extends State<MyHomePage> {
   final _auth = Authenticator(true, false);
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
+  final _optionsController = TextEditingController();
 
   final _credentials = <CredentialData>[];
   int? _highlightCredentialIdx;
 
   bool _processing = false;
 
-  Future<T?> _lockAndExecute<T>(Future<T> Function() callback) async {
+  Future<T?> _lockAndExecute<T>(
+      bool validate, Future<T> Function() callback) async {
     T? result;
     if (!_processing) {
       setState(() {
         _processing = true;
       });
 
-      final data = _formKey.currentState;
-      if (data != null && data.validate()) {
-        result = await callback();
-      }
+      try {
+        bool valid = true;
+        if (validate) {
+          final data = _formKey.currentState;
+          if (data == null || !data.validate()) {
+            valid = false;
+          }
+        }
 
-      setState(() {
-        _processing = false;
-      });
+        if (valid) {
+          result = await callback();
+        }
+      } on Exception catch (e) {
+        _snackBar(e.toString());
+      } finally {
+        setState(() {
+          _processing = false;
+        });
+      }
     }
     return result;
   }
@@ -124,98 +137,120 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
-  void _createCredential() async {
-    final credentialId = await _lockAndExecute(() async {
-      try {
-        final username = _usernameController.text.trim();
-        final options =
-            MakeCredentialOptions.fromJson(jsonDecode(makeCredentialJson));
-        options.userEntity = UserEntity(
-          id: Uint8List.fromList(username.codeUnits),
-          displayName: username,
-          name: username,
-        );
-
-        final attestation = await _auth.makeCredential(options);
-
-        setState(() {
-          _usernameController.text = '';
-          _highlightCredentialIdx = _credentials.length;
-          _credentials.add(CredentialData(username, attestation));
-        });
-        _startResetSelection();
-
-        return attestation.getCredentialIdBase64();
-      } on AuthenticatorException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Attestation error: ${e.message}'),
-          ),
-        );
-        return null;
-      }
-    });
-
-    if (credentialId != null && mounted) {
+  void _snackBar(String message) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Attestation created: $credentialId'),
+          content: Text(message),
         ),
       );
     }
   }
 
-  void _createAttestation() async {
-    final credentialId = await _lockAndExecute(() async {
+  void _showOptionsDialog(
+    String title,
+    Object options,
+    void Function() onCreate,
+  ) {
+    const encoder = JsonEncoder.withIndent('  ');
+    final prettyJson = encoder.convert(options);
+
+    _optionsController.text = prettyJson;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => Dialog.fullscreen(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: TextField(
+                  controller: _optionsController,
+                  textInputAction: TextInputAction.newline,
+                  keyboardType: TextInputType.multiline,
+                  maxLines: null,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onCreate();
+                  },
+                  child: const Text('Create'),
+                ),
+                const SizedBox(width: 30),
+                TextButton(onPressed: () async {
+                  final data = await Clipboard.getData('text/plain');
+                  if (data != null && data.text != null) {
+                    _optionsController.text = data.text!;
+                  }
+                }, child: const Text('From Clipboard'),),
+                const SizedBox(width: 30),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateCredential() {
+    final username = _usernameController.text.trim();
+    final options =
+        MakeCredentialOptions.fromJson(json.decode(makeCredentialJson));
+    options.userEntity = UserEntity(
+      id: Uint8List.fromList(username.codeUnits),
+      displayName: username,
+      name: username,
+    );
+
+    _showOptionsDialog('Create Credential Options', options, _createCredential);
+  }
+
+  void _createCredential() async {
+    final credential = await _lockAndExecute(false, () async {
       try {
-        final username = _usernameController.text.trim();
+        final optionsJson = _optionsController.text.trim();
         final options =
-            GetAssertionOptions.fromJson(jsonDecode(getAssertionJson));
-        // Only allow credentials currently in the state with a matching username
-        // The requesting server should be doing this and sending which credentials
-        // they are expecting you to try to verify.
-        options.allowCredentialDescriptorList = _credentials
-            .where((e) => e.username == username)
-            .map((e) => PublicKeyCredentialDescriptor(
-                type: PublicKeyCredentialType.publicKey,
-                id: e.attestation.getCredentialId()))
-            .toList();
+            MakeCredentialOptions.fromJson(json.decode(optionsJson));
 
-        // User not found
-        if (options.allowCredentialDescriptorList!.isEmpty) {
-          throw AuthenticatorException('Username not found');
-        }
-
-        final assertion = await _auth.getAssertion(options);
-        final credentialId = base64.encode(assertion.selectedCredentialId);
-        final credentialIdx = _credentials.indexWhere(
-            (e) => e.attestation.getCredentialIdBase64() == credentialId);
+        final attestation = await _auth.makeCredential(options);
+        final credential = CredentialData(options.userEntity.name, attestation);
 
         setState(() {
           _usernameController.text = '';
-          _highlightCredentialIdx = credentialIdx >= 0 ? credentialIdx : null;
+          _highlightCredentialIdx = _credentials.length;
+          _credentials.add(credential);
         });
         _startResetSelection();
 
-        return credentialId;
+        return credential;// attestation.getCredentialIdBase64();
       } on AuthenticatorException catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Assertion error: ${e.message}'),
-            ),
-          );
-        }
+        _snackBar('Attestation error: ${e.message}');
         return null;
       }
     });
 
-    if (credentialId != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Assertion succeeded for: $credentialId'),
-        ),
-      );
+    if (credential != null) {
+      final credentialId = credential.attestation.getCredentialIdBase64();
+      _snackBar('Attestation created: $credentialId');
+      _showCredentialDetails(credential);
     }
   }
 
@@ -245,11 +280,152 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
               const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      final credentialId =
+                          credential.attestation.getCredentialIdBase64();
+                      final response = json.encode({
+                        'type': 'public-key',
+                        'id': credentialId,
+                        'rawId': credentialId,
+                        'response': {
+                          'clientDataJSON': '',
+                          'attestationObject':
+                              base64Url.encode(credential.attestation.asCBOR()),
+                        },
+                      });
+
+                      await Clipboard.setData(ClipboardData(text: response));
+                    },
+                    child: const Text('Copy Response'),
+                  ),
+                  const SizedBox(width: 30),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateAssertion() {
+    final username = _usernameController.text.trim();
+    final options = GetAssertionOptions.fromJson(json.decode(getAssertionJson));
+    // Only allow credentials currently in the state with a matching username
+    // The requesting server should be doing this and sending which credentials
+    // they are expecting you to try to verify.
+    options.allowCredentialDescriptorList = _credentials
+        .where((e) => e.username == username)
+        .map((e) => PublicKeyCredentialDescriptor(
+            type: PublicKeyCredentialType.publicKey,
+            id: e.attestation.getCredentialId()))
+        .toList();
+
+    // User not found
+    if (username.isNotEmpty && options.allowCredentialDescriptorList!.isEmpty) {
+      _snackBar('Error: Username not found');
+      return;
+    }
+
+    _showOptionsDialog('Create Assertion Options', options, _createAssertion);
+  }
+
+  void _createAssertion() async {
+    final assertion = await _lockAndExecute(false, () async {
+      try {
+        final optionsJson = _optionsController.text.trim();
+        final options = GetAssertionOptions.fromJson(json.decode(optionsJson));
+
+        final assertion = await _auth.getAssertion(options);
+        final credentialId = base64Url.encode(assertion.selectedCredentialId);
+        final credentialIdx = _credentials.indexWhere(
+            (e) => e.attestation.getCredentialIdBase64() == credentialId);
+
+        setState(() {
+          _usernameController.text = '';
+          _highlightCredentialIdx = credentialIdx >= 0 ? credentialIdx : null;
+        });
+        _startResetSelection();
+
+        return assertion;
+      } on AuthenticatorException catch (e) {
+        _snackBar('Assertion error: ${e.message}');
+        return null;
+      }
+    });
+
+    if (assertion != null) {
+      final credentialId = base64Url.encode(assertion.selectedCredentialId);
+      _snackBar('Assertion succeeded for: $credentialId');
+      _showAssertionDetails(assertion);
+    }
+  }
+
+  void _showAssertionDetails(Assertion assertion) {
+    final assertionResponse = {
+      'id': base64Url.encode(assertion.selectedCredentialId),
+      'rawId': base64Url.encode(assertion.selectedCredentialId),
+      'type': 'public-key',
+      'response': {
+        'authenticatorData': base64Url.encode(assertion.authenticatorData),
+        'clientDataJSON': '',
+        'signature': base64Url.encode(assertion.signature),
+        'userHandle': base64Url.encode(assertion.selectedCredentialUserHandle),
+      },
+    };
+
+    const encoder = JsonEncoder.withIndent('  ');
+    final rawJson = json.encode(assertionResponse);
+    final prettyJson = encoder.convert(assertionResponse);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => Dialog.fullscreen(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Full Assertion Payload',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              SelectableText(
+                prettyJson,
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(text: rawJson));
                 },
-                child: const Text('Close'),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: rawJson));
+                    },
+                    child: const Text('Copy Response'),
+                  ),
+                  const SizedBox(width: 30),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Close'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -376,12 +552,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                    onPressed: _processing ? null : _createCredential,
+                    onPressed: _processing ? null : _showCreateCredential,
                     child: const Text('Register'),
                   ),
                   const SizedBox(width: 30),
                   ElevatedButton(
-                    onPressed: _processing ? null : _createAttestation,
+                    onPressed: _processing ? null : _showCreateAssertion,
                     child: const Text('Login'),
                   ),
                 ],

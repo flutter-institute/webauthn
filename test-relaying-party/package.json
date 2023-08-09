@@ -1,0 +1,15 @@
+{
+  "name": "test-relaying-party",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Webauthn Test server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Brian Armstrong <brian@flutter.institute>",
+  "license": "ISC",
+  "dependencies": {
+    "fido2-lib": "^3.4.1"
+  }
+}
