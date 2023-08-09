@@ -74,12 +74,6 @@ class MakeCredentialOptions {
       return 'userEntity.name must be a non-empty string with valid characters';
     }
 
-    try {
-      profile.enforce(userEntity.displayName);
-    } on Exception {
-      return 'userEntity.displayName must be a non-empty string with valid characters';
-    }
-
     if (userEntity.id.isEmpty || userEntity.id.length > 64) {
       return 'userEntity.id must be between 1 and 64 bytes longs.';
     }
