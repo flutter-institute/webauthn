@@ -20,7 +20,7 @@ class NoneAttestation extends Attestation {
   @override
   String toJson() {
     return json.encode({
-      'authData': base64.encode(authData),
+      'authData': base64Url.encode(authData),
       'fmt': format,
       'attStmt': {},
     });

@@ -7,6 +7,7 @@ import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../helpers/base64.dart';
 import './webauthn_cryptography.dart';
 import '../db/credential.dart';
 import '../exceptions.dart';
@@ -57,7 +58,7 @@ class CredentialSafe {
       CborBigInt(pub.xCoordinate),
       CborBigInt(pub.yCoordinate),
     ]));
-    await _storage.write(key: alias, value: base64.encode(encoded));
+    await _storage.write(key: alias, value: base64Url.encode(encoded));
 
     return keypair;
   }
@@ -66,7 +67,7 @@ class CredentialSafe {
   Future<KeyPair?> _loadKeyPairFromAlias(String alias) async {
     final encoded = await _storage.read(key: alias);
     if (encoded != null) {
-      final cborList = cbor.decode(base64.decode(encoded)) as CborList;
+      final cborList = cbor.decode(base64Url.decode(padBase64(encoded))) as CborList;
       final eccPrivateKey = cborList[0].toObject() as BigInt;
       final pk = EcPrivateKey(
         eccPrivateKey: eccPrivateKey,

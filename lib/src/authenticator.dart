@@ -375,8 +375,8 @@ class Authenticator {
           'rpIdHash must be a $shaLength-byte SHA-256 hash',
           arguments: {'rpIdHash': rpIdHash});
     }
-    // | rpIdHash | flags | useCounter | authenticatorData
-    // |    32    |   1   |     4      |     127 or 0
+    // | rpIdHash | flags | useCounter | credentialData | extensions
+    // |    32    |   1   |     4      |     127 or 0   |   N or 0
 
     int flags = 0x01; // user present
     if (await _credentialSafe.supportsUserVerification()) {

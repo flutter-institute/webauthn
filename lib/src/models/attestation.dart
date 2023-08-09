@@ -41,6 +41,6 @@ abstract class Attestation {
   /// it to a string.
   /// @see Figure 5 is helpful: https://www.w3.org/TR/webauthn/#attestation-object
   String getCredentialIdBase64() {
-    return base64.encode(getCredentialId());
+    return base64Url.encode(getCredentialId());
   }
 }

@@ -23,11 +23,11 @@ class PackedSelfAttestation extends Attestation {
   @override
   String toJson() {
     return json.encode({
-      'authData': base64.encode(authData),
+      'authData': base64Url.encode(authData),
       'fmt': format,
       'attStmt': {
         'alg': WebauthnCrytography.signingAlgoId,
-        'sig': base64.encode(signature),
+        'sig': base64Url.encode(signature),
       },
     });
   }
