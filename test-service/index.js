@@ -15,7 +15,7 @@ const f2l = new Fido2Lib({
     authenticatorUserVerification: 'discouraged', // set to "required" or "preferred" to make happen
 });
 
-async function prompt(query) {
+async function prompt(query, numNewline = 1) {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -36,7 +36,7 @@ async function prompt(query) {
             line = line.trim();
             if (line === '') {
                 emptyLineCount += 1;
-                if (emptyLineCount == 2) {
+                if (emptyLineCount == numNewline) {
                     finish();
                 }
             } else {
@@ -90,7 +90,7 @@ async function doTestCreate() {
     console.log(JSON.stringify(makeCredentialJson, undefined, 2));
     console.log('\n');
 
-    const attestationJson = await prompt('Enter the Attestation Response JSON below followed by two empty lines:\n');
+    const attestationJson = await prompt('Enter the Attestation Response JSON below followed by two empty lines:\n', 2);
     const attestation = JSON.parse(attestationJson);
 
     attestation.origin = clientDataJson.origin;
@@ -149,7 +149,7 @@ async function doTestAssert([rawUserId, attestationResult]) {
     console.log(JSON.stringify(getAssertionOptions, undefined, 2));
     console.log('\n');
 
-    const assertionJson = await prompt('Enter the Assertion Response JSON below followed by two empty lines:\n');
+    const assertionJson = await prompt('Enter the Assertion Response JSON below followed by two empty lines:\n', 2);
     const assertion = JSON.parse(assertionJson);
 
     assertion.rawId = Uint8Array.from(Buffer.from(assertion.rawId, 'base64')).buffer;
@@ -171,6 +171,7 @@ async function doTestAssert([rawUserId, attestationResult]) {
     console.log('signature', Buffer.from(authnResult.authnrData.get('sig')).toString('base64'));
     console.log('counter', authnResult.authnrData.get('counter'));
     console.log('---------------------\n');
+    await prompt('Press enter to continue\n');
 }
 
 if (require.main === module) {
