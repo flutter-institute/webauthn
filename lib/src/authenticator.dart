@@ -21,6 +21,7 @@ import 'models/authentication_localization_options.dart';
 import 'models/collected_client_data.dart';
 import 'models/create_credential_options.dart';
 import 'models/cred_type_pub_key_algo_pair.dart';
+import 'models/credential_request_options.dart';
 import 'models/get_assertion_options.dart';
 import 'models/make_credential_options.dart';
 import 'models/rp_entity.dart';
@@ -87,7 +88,8 @@ class Authenticator {
   /// convert the options received from the relying party for use with
   /// the [makeCredential] method
   /// @see https://www.w3.org/TR/webauthn/#sctn-createCredential
-  Future<(CollectedClientData, MakeCredentialOptions)> createCredentialOptions(
+  Future<(CollectedClientData, MakeCredentialOptions)>
+      createMakeCredentialOptions(
     String origin,
     CreateCredentialOptions options,
     bool sameOriginWithAncestor,
@@ -103,9 +105,10 @@ class Authenticator {
     // TODO step 7 - validate valid domain
 
     // Step 8
-    String rpId = pkOptions.rpEntity.id;
-    if (rpId.isEmpty) {
-      rpId = origin;
+    String rpId = origin;
+    if (pkOptions.rpEntity.id.isNotEmpty) {
+      rpId = pkOptions.rpEntity.id;
+      // TODO validate
     }
 
     // Step 9-10
@@ -132,9 +135,8 @@ class Authenticator {
 
     // TODO - step 11-12 extensions
 
-    // Step 13
+    // Step 13-15
     final collectedClientData = CollectedClientData.fromCredentialCreateOptions(
-      type: 'webauthn.create',
       origin: origin,
       sameOriginWithAncestor: sameOriginWithAncestor,
       options: pkOptions,
@@ -153,7 +155,7 @@ class Authenticator {
     }
 
     // Step 20.4
-    late bool requireUserVerification;
+    bool requireUserVerification = true;
     if (authSelection.userVerification == "required") {
       requireUserVerification = true;
     } else if (authSelection.userVerification == "preferred") {
@@ -310,6 +312,66 @@ class Authenticator {
     return attestation;
   }
 
+  /// Perform portions of the internal Get operations. This will help to
+  /// convert the options received from the relying party for use with
+  /// the [getAssertion] method
+  /// @see https://www.w3.org/TR/webauthn/#sctn-getAssertion
+  Future<(CollectedClientData, GetAssertionOptions)> createGetAssertionOptions(
+    String origin,
+    CredentialRequestOptions options,
+    bool sameOriginWithAncestor,
+  ) async {
+    // Step 1-2
+    final pkOptions = options.publicKey;
+
+    // Step 3 - skip
+
+    // TODO step 4 - validate opaque origin
+    // TODO step 5 - validate valid domain
+
+    // Step 6
+    String rpId = origin;
+    if (pkOptions.rpId?.isNotEmpty == true) {
+      rpId = pkOptions.rpId!;
+      // TODO validate
+    }
+
+    // TODO step 7-8 - extensions
+
+    // Step 9-11
+    final collectedClientData =
+        CollectedClientData.fromCredentialRequestOptions(
+            origin: origin,
+            sameOriginWithAncestor: sameOriginWithAncestor,
+            options: pkOptions);
+
+    // Step 17.2
+    late bool requireUserVerification = true;
+    if (pkOptions.userVerification == "required") {
+      requireUserVerification = true;
+    } else if (pkOptions.userVerification == "preferred") {
+      requireUserVerification =
+          await _credentialSafe.supportsUserVerification();
+    } else if (pkOptions.userVerification == "discouraged") {
+      requireUserVerification = false;
+    }
+
+    return (
+      collectedClientData,
+      GetAssertionOptions(
+        rpId: rpId,
+        clientDataHash: collectedClientData.hash(),
+        requireUserPresence: !requireUserVerification,
+        requireUserVerification: requireUserVerification,
+        allowCredentialDescriptorList: pkOptions.allowCredentials,
+      )
+    );
+  }
+
+  /// Perform the authenticatorGetAssertion operation as defined by the WebAuthn spec
+  /// @see https://www.w3.org/TR/webauthn/#sctn-op-get-assertion
+  /// The [options] to get the assertion should be passed. An [Assertion]
+  /// containing the selected credential and proofs is returned.
   Future<Assertion> getAssertion(GetAssertionOptions options,
       {var localizationOptions =
           const AuthenticationLocalizationOptions()}) async {
@@ -329,8 +391,7 @@ class Authenticator {
     var credentials = await _credentialSafe.getKeysForEntity(options.rpId);
 
     // Step 2-3: Actually parse allowCredentialDescriptorList
-    if (options.allowCredentialDescriptorList != null &&
-        options.allowCredentialDescriptorList!.isNotEmpty) {
+    if (options.allowCredentialDescriptorList?.isNotEmpty == true) {
       final filteredCredentials = <Credential>[];
 
       const eq = ListEquality();

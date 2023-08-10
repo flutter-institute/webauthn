@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'public_key_credential_creation_options.dart';
+import 'public_key_credential_request_options.dart';
 import 'token_binding.dart';
 
 part 'generated/collected_client_data.g.dart';
@@ -26,11 +27,19 @@ class CollectedClientData {
   });
 
   CollectedClientData.fromCredentialCreateOptions({
-    required this.type,
     required this.origin,
     required bool sameOriginWithAncestor,
     required PublicKeyCredentialCreationOptions options,
-  })  : crossOrigin = !sameOriginWithAncestor,
+  })  : type = 'webauthn.create',
+        crossOrigin = !sameOriginWithAncestor,
+        challenge = base64Url.encode(options.challenge);
+
+  CollectedClientData.fromCredentialRequestOptions({
+    required this.origin,
+    required bool sameOriginWithAncestor,
+    required PublicKeyCredentialRequestOptions options,
+  })  : type = 'webauthn.get',
+        crossOrigin = !sameOriginWithAncestor,
         challenge = base64Url.encode(options.challenge);
 
   // TODO tokenBinding (and any other fields) need to be able to be serialized

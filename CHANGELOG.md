@@ -1,7 +1,8 @@
 ## 0.1.0
 
 * Adding support for packed attestations when a new credential is created
-* Switching to return the new packed attestation by default
+* Adding support for basic conversions between the authenticator and web API options
+* Switching to return a packed attestation by default
 * Adding toJson() handling to attestation objects
 * Updating dependencies to latest versions
 

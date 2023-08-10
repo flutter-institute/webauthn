@@ -11,7 +11,7 @@ CollectedClientData _$CollectedClientDataFromJson(Map json) =>
       type: json['type'] as String,
       challenge: json['challenge'] as String,
       origin: json['origin'] as String,
-      crossOrigin: json['crossOrigin'] as bool,
+      crossOrigin: json['crossOrigin'] as bool? ?? false,
     )..tokenBinding = json['tokenBinding'] == null
         ? null
         : TokenBinding.fromJson(

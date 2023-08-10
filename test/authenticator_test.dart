@@ -16,6 +16,7 @@ import 'package:webauthn/src/enums/attestation_type.dart';
 import 'package:webauthn/src/enums/public_key_credential_type.dart';
 import 'package:webauthn/src/exceptions.dart';
 import 'package:webauthn/src/models/create_credential_options.dart';
+import 'package:webauthn/src/models/credential_request_options.dart';
 import 'package:webauthn/src/models/get_assertion_options.dart';
 import 'package:webauthn/src/models/make_credential_options.dart';
 import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
@@ -76,6 +77,15 @@ const makeCredentialJson = '''{
         "displayName": "Test User",
         "id": "/QIAAAAAAAAAAA=="
     }
+}''';
+
+const credentialRequestJson = '''{
+  "publicKey": {
+    "challenge": "AQIDBA==",
+    "timeout": 600000,
+    "rpId": "example.com",
+    "userVerification": "discouraged"
+  }
 }''';
 
 const getAssertionJson = '''{
@@ -390,7 +400,7 @@ void main() {
     });
   });
 
-  group('create options', () {
+  group('create credential options', () {
     late CreateCredentialOptions options;
 
     setUp(() {
@@ -401,7 +411,7 @@ void main() {
     test('correct makeCredential options', () async {
       final sut = getSut();
       final (clientData, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
 
       expect(clientData.type, 'webauthn.create');
       expect(clientData.origin, equals('example.com'));
@@ -427,7 +437,7 @@ void main() {
 
       final sut = getSut();
       final (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
 
       expect(options.publicKey.rpEntity.id, equals(''));
       expect(creds.rpEntity.id, equals('example.com'));
@@ -438,7 +448,7 @@ void main() {
 
       final sut = getSut();
       final (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
 
       expect(creds.credTypesAndPubKeyAlgs, hasLength(1));
       expect(
@@ -453,30 +463,30 @@ void main() {
       options.publicKey.authenticatorSelection.residentKey = "";
       options.publicKey.authenticatorSelection.requireResidentKey = true;
       var (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireResidentKey, equals(true));
 
       options.publicKey.authenticatorSelection.requireResidentKey = false;
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireResidentKey, equals(false));
 
       // Resident key required
       options.publicKey.authenticatorSelection.residentKey = "required";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireResidentKey, equals(true));
 
       // Resident key preferred
       options.publicKey.authenticatorSelection.residentKey = "preferred";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireResidentKey, equals(true));
 
       // Resident key discouraged
       options.publicKey.authenticatorSelection.residentKey = "discouraged";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireResidentKey, equals(false));
     });
 
@@ -486,14 +496,14 @@ void main() {
       // User verification required
       options.publicKey.authenticatorSelection.userVerification = "required";
       var (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireUserVerification, equals(true));
       expect(creds.requireUserPresence, equals(false));
 
       // User verificiation discouraged
       options.publicKey.authenticatorSelection.userVerification = "discouraged";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireUserVerification, equals(false));
       expect(creds.requireUserPresence, equals(true));
 
@@ -501,7 +511,7 @@ void main() {
       when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => true);
       options.publicKey.authenticatorSelection.userVerification = "preferred";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireUserVerification, equals(true));
       expect(creds.requireUserPresence, equals(false));
 
@@ -509,7 +519,7 @@ void main() {
       when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => false);
       options.publicKey.authenticatorSelection.userVerification = "preferred";
       (_, creds) =
-          await sut.createCredentialOptions('example.com', options, true);
+          await sut.createMakeCredentialOptions('example.com', options, true);
       expect(creds.requireUserVerification, equals(false));
       expect(creds.requireUserPresence, equals(true));
     });
@@ -517,7 +527,7 @@ void main() {
     test('error on origin values', () {
       final sut = getSut();
       expect(
-          () => sut.createCredentialOptions('example.com', options, false),
+          () => sut.createMakeCredentialOptions('example.com', options, false),
           throwsA((e) =>
               e is CredentialCreationException &&
               e.message.contains('Not Allowed')));
@@ -531,10 +541,83 @@ void main() {
             type: PublicKeyCredentialType.publicKey, alg: 1337),
       ];
       expect(
-          () => sut.createCredentialOptions('example.com', options, true),
+          () => sut.createMakeCredentialOptions('example.com', options, true),
           throwsA((e) =>
               e is CredentialCreationException &&
               e.message.contains('Not Supported')));
+    });
+  });
+
+  group('credential request options', () {
+    late CredentialRequestOptions options;
+
+    setUp(() {
+      options =
+          CredentialRequestOptions.fromJson(jsonDecode(credentialRequestJson));
+    });
+
+    test('correct getAssertion options', () async {
+      final sut = getSut();
+      final (clientData, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+
+      expect(clientData.type, 'webauthn.get');
+      expect(clientData.origin, equals('example.com'));
+      expect(clientData.crossOrigin, equals(false));
+      expect(clientData.challenge, equals('AQIDBA=='));
+      expect(clientData.tokenBinding, isNull);
+
+      expect(creds.clientDataHash, equals(clientData.hash()));
+      expect(creds.rpId, equals(options.publicKey.rpId));
+      expect(creds.requireUserPresence, equals(true));
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.allowCredentialDescriptorList,
+          equals(options.publicKey.allowCredentials));
+    });
+
+    test('default rpId', () async {
+      options.publicKey.rpId = '';
+
+      final sut = getSut();
+      final (_, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+
+      expect(options.publicKey.rpId, equals(''));
+      expect(creds.rpId, equals('example.com'));
+    });
+
+    test('translate requireUserVerification', () async {
+      final sut = getSut(authenticationRequired: true);
+
+      // User verification required
+      options.publicKey.userVerification = "required";
+      var (_, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(true));
+      expect(creds.requireUserPresence, equals(false));
+
+      // User verificiation discouraged
+      options.publicKey.userVerification = "discouraged";
+      (_, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.requireUserPresence, equals(true));
+
+      // User verification discouraged / has local auth
+      when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => true);
+      options.publicKey.userVerification = "preferred";
+      (_, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(true));
+      expect(creds.requireUserPresence, equals(false));
+
+      // User verification discouraged / no local auth
+      when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => false);
+      options.publicKey.userVerification = "preferred";
+      (_, creds) =
+          await sut.createGetAssertionOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.requireUserPresence, equals(true));
     });
   });
 }
