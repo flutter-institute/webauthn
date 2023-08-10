@@ -95,9 +95,13 @@ class CredentialSafe {
   ///   [userHandle] a unique ID for the user
   ///   [username] A human-readable username for the user
   Future<Credential> generateCredential(
-      String rpEntityId, Uint8List userHandle, String username) async {
+    String rpEntityId,
+    Uint8List userHandle,
+    String username, [
+    bool? requireUserVerification,
+  ]) async {
     final credential = Credential.forKey(rpEntityId, userHandle, username,
-        authenticationRequired, strongboxRequired);
+        requireUserVerification ?? authenticationRequired, strongboxRequired);
     // return not captured -- we will retrieve it later
     await _generateNewES256KeyPair(credential.keyPairAlias);
 

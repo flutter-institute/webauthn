@@ -149,34 +149,36 @@ async function doTestAssert([rawUserId, attestationResult]) {
     console.log(JSON.stringify(getAssertionOptions, undefined, 2));
     console.log('\n');
 
-    while(true) {
-        const assertionJson = await prompt('Enter the Assertion Response JSON below followed by two empty lines:\n');
-        const assertion = JSON.parse(assertionJson);
+    const assertionJson = await prompt('Enter the Assertion Response JSON below followed by two empty lines:\n');
+    const assertion = JSON.parse(assertionJson);
 
-        assertion.rawId = Uint8Array.from(Buffer.from(assertion.rawId, 'base64')).buffer;
-        assertion.response.clientDataJSON = clientData.buffer;
+    assertion.rawId = Uint8Array.from(Buffer.from(assertion.rawId, 'base64')).buffer;
+    assertion.response.clientDataJSON = clientData.buffer;
 
-        const assertionExpectations = {
-            challenge,
-            origin: clientDataJson.origin,
-            factor: "either",
-            publicKey: attestationResult.authnrData.get('credentialPublicKeyPem'),
-            prevCounter: attestationResult.authnrData.get('counter'),
-            userHandle: rawUserId,
-            allowCredentials: getAssertionOptions.allowCredentialDescriptorList,
-        };
+    const assertionExpectations = {
+        challenge,
+        origin: clientDataJson.origin,
+        factor: "either",
+        publicKey: attestationResult.authnrData.get('credentialPublicKeyPem'),
+        prevCounter: attestationResult.authnrData.get('counter'),
+        userHandle: rawUserId,
+        allowCredentials: getAssertionOptions.allowCredentialDescriptorList,
+    };
 
-        const authnResult = await f2l.assertionResult(assertion, assertionExpectations);
+    const authnResult = await f2l.assertionResult(assertion, assertionExpectations);
 
-        console.log('Success!');
-        console.log('signature', Buffer.from(authnResult.authnrData.get('sig')).toString('base64'));
-        console.log('counter', authnResult.authnrData.get('counter'));
-        console.log('---------------------\n');
-    }
+    console.log('Success!');
+    console.log('signature', Buffer.from(authnResult.authnrData.get('sig')).toString('base64'));
+    console.log('counter', authnResult.authnrData.get('counter'));
+    console.log('---------------------\n');
 }
 
 if (require.main === module) {
     Promise.resolve()
         .then(doTestCreate)
-        .then(doTestAssert);
+        .then(async result => {
+            while (true) {
+                await doTestAssert(result);
+            }
+        });
 }

@@ -56,7 +56,7 @@ class Authenticator {
   /// to [credentialSafe], [cryptography], or [localAuth]. These should be left as is
   /// except when mocked for unit tests.
   Authenticator(
-    bool authenticationRequired,
+    this.authenticationRequired,
     bool strongboxRequired, {
     CredentialSafe? credentialSafe,
     WebauthnCrytography? cryptography,
@@ -70,6 +70,7 @@ class Authenticator {
             ),
         _localAuth = localAuth ?? LocalAuthentication();
 
+  final bool authenticationRequired;
   final CredentialSafe _credentialSafe;
   final WebauthnCrytography _crypto;
   final LocalAuthentication _localAuth;
@@ -251,9 +252,11 @@ class Authenticator {
     // Our authenticator will store resident keys regardless, so we can disregard the value of this parameter
 
     // Step 5: Check requireUserVerification
+    final requiresUserVerification =
+        authenticationRequired || options.requireUserVerification;
     final supportsUserVerifiation =
         await _credentialSafe.supportsUserVerification();
-    if (options.requireUserVerification && !supportsUserVerifiation) {
+    if (requiresUserVerification && !supportsUserVerifiation) {
       _logger.w('User verification is required but not available');
       throw CredentialCreationException(
           'User verification is required but not available');
@@ -267,7 +270,11 @@ class Authenticator {
     late Credential credentialSource;
     try {
       credentialSource = await _credentialSafe.generateCredential(
-          options.rpEntity.id, options.userEntity.id, options.userEntity.name);
+        options.rpEntity.id,
+        options.userEntity.id,
+        options.userEntity.name,
+        requiresUserVerification,
+      );
     } on Exception catch (e) {
       // Step 8: throw error
       _logger.w('Couldn\'t generate credential', error: e);

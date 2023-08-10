@@ -10,6 +10,12 @@ export 'src/enums/public_key_credential_type.dart';
 export 'src/models/assertion.dart';
 export 'src/models/attestation.dart';
 
+// Models for handling Web API translation
+export 'src/models/create_credential_options.dart';
+export 'src/models/assertion_response.dart';
+export 'src/models/credential_request_options.dart';
+export 'src/models/attestation_response.dart';
+
 // Models for creating credentials and assertions
 export 'src/models/get_assertion_options.dart';
 export 'src/models/make_credential_options.dart';
