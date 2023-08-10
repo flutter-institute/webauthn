@@ -113,12 +113,12 @@ final attestation = authenticator.makeCredential(options);
 
 Once you have an `Attestation`, you can also retrieve its CBOR representation as follows:
 ```dart
-Uint8List attestationBytes = attestation.toCBOR();
+Uint8List attestationBytes = attestation.asCBOR();
 ```
 
 Or you can retrieve a JSON representation as follows:
 ```dart
-Map<String, dynamic> attestationJson = attestation.toJson();
+String attestationJson = attestation.asJSON();
 ```
 
 ### Get Assertion (User Login)
@@ -147,3 +147,46 @@ final getAssertionOptions = GetAssertionOptions.fromJson(options);
 ```
 
 Step 7 of [authenticatorGetAssertion](https://www.w3.org/TR/webauthn/#sctn-op-get-assertion) requires that the authenticator prompt a credential selection. This has not yet been implemented, so the most recently created credential is currently used.
+
+### WebAuthn API
+
+If you are implementing your authenticator to interact directly with the Relying Party's application, then you need to be sure to implement the WebAuthn API before trying to call the authenticator according to the [Web Authentication API Spec](https://www.w3.org/TR/webauthn/#sctn-api).
+
+The authenticator library has helper methods to help make a few of these operations easier.
+
+#### Create a New Credential
+
+When you need to [Create a New Credential](https://www.w3.org/TR/webauthn/#sctn-createCredential) you will receive a `CreateCredentialOptions` from the Relying Party. The authenticator will handle the basic processing as follows:
+
+```dart
+final rpOptions = CreateCredentialOptions.fromJson(optionsPayload);
+final makeCredentialOptions = await authenticator.createMakeCredentialOptions(
+    origin, // The origin from which you received the request
+    rpOptions,
+    sameOriginWithAncestor, // Whether we are acting on the same origin
+);
+// ... any code your app needs to do before creating the credential
+final attestation = await authenticator.makeCredential(makeCredentialOptions);
+// ... any code your app needs to de before responding
+final responseObj = await authenticator.createAttestationResponse(attestation);
+final responseJson = json.encode(responseObj.toJson());
+```
+
+#### Make an Assertion
+
+When you need to [Make an Assertion](https://www.w3.org/TR/webauthn/#sctn-getAssertion) you will receive a `CredentialRequestOptions` from the Relying Party. The authenticator will handle the basic processing as follows:
+
+```dart
+final rpOptions = CredentialRequestOptions.fromJson(optionsPayload);
+final getAssertionOptions = await authenticator.createGetAssertionOptions(
+    origin, // The origin from which you received the request
+    rpOptions,
+    sameOriginWithAncestor, // Whether we are acting on the same origin
+);
+
+// ... any code your app needs to do before getting the assertion
+final assertion = await authenticator.getAssertion(getAssertionOptions);
+// ... any code your app needs to do before responding
+final responseObj = await authenticator.createAssertionResponse(assertion);
+final responseJson = json.encode(responseObj.toJson());
+```

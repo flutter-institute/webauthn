@@ -256,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _showCredentialDetails(CredentialData credential) {
     const encoder = JsonEncoder.withIndent('  ');
-    final rawJson = credential.attestation.toJson();
+    final rawJson = credential.attestation.asJSON();
     final prettyJson = encoder.convert(json.decode(rawJson));
 
     showDialog(

@@ -16,7 +16,7 @@ abstract class Attestation {
   Uint8List asCBOR();
 
   /// Returns the attestation in its JSON packed representation
-  String toJson();
+  String asJSON();
 
   /// Retrieves the credential_id field from the attestation object
   /// @see Figure 5 is helpful: https://www.w3.org/TR/webauthn/#attestation-object

@@ -227,7 +227,7 @@ void main() {
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
     validateAttestationMap(cborEncoded);
 
-    final jsonEncoded = json.decode(attObj.toJson());
+    final jsonEncoded = json.decode(attObj.asJSON());
     jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
     validateAttestationMap(jsonEncoded);
 
@@ -288,7 +288,7 @@ void main() {
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
     validateAttestationMap(cborEncoded);
 
-    final jsonEncoded = json.decode(attObj.toJson());
+    final jsonEncoded = json.decode(attObj.asJSON());
     jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
     jsonEncoded['attStmt']['sig'] =
         base64.decode(jsonEncoded['attStmt']['sig']);

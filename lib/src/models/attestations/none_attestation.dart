@@ -18,7 +18,7 @@ class NoneAttestation extends Attestation {
   /// @see https://www.w3.org/TR/webauthn/#sctn-attestation
   /// @see https://www.w3.org/TR/webauthn/#sctn-none-attestation
   @override
-  String toJson() {
+  String asJSON() {
     return json.encode({
       'authData': base64Url.encode(authData),
       'fmt': format,

@@ -7,6 +7,10 @@ import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:logger/logger.dart';
+import 'package:webauthn/src/models/assertion_response.dart';
+import 'package:webauthn/src/models/assertion_response_data.dart';
+import 'package:webauthn/src/models/attestation_response.dart';
+import 'package:webauthn/src/models/attestation_response_data.dart';
 
 import 'constants.dart' as c;
 import 'db/credential.dart';
@@ -177,6 +181,22 @@ class Authenticator {
         requireUserVerification: requireUserVerification,
         credTypesAndPubKeyAlgs: credTypesAndPubKeyAlgs,
       )
+    );
+  }
+
+  /// Convert an [Attestation] into an [AttestationResponse] that can be sent
+  /// to the Relying Party as a response to a createCredential request
+  Future<AttestationResponse> createAttestationResponse(
+    CollectedClientData collectedClientData,
+    Attestation attestation,
+  ) async {
+    return AttestationResponse(
+      rawId: attestation.getCredentialId(),
+      type: PublicKeyCredentialType.publicKey,
+      response: AttestationResponseData(
+        clientDataJSON: collectedClientData.encode(),
+        attestationObject: attestation.asCBOR(),
+      ),
     );
   }
 
@@ -366,6 +386,23 @@ class Authenticator {
         allowCredentialDescriptorList: pkOptions.allowCredentials,
       )
     );
+  }
+
+  /// Convert an [Assertion] into an [AssertionResponse] that can be sent
+  /// to the Relying Party as a response to a getAssertion request
+  Future<AssertionResponse> createAssertionResponse(
+    CollectedClientData collectedClientData,
+    Assertion assertion,
+  ) async {
+    return AssertionResponse(
+        rawId: assertion.selectedCredentialId,
+        type: PublicKeyCredentialType.publicKey,
+        response: AssertionResponseData(
+          authenticatorData: assertion.authenticatorData,
+          clientDataJSON: collectedClientData.encode(),
+          signature: assertion.signature,
+          userHandle: assertion.selectedCredentialUserHandle,
+        ));
   }
 
   /// Perform the authenticatorGetAssertion operation as defined by the WebAuthn spec
