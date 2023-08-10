@@ -36,7 +36,7 @@ android {
 
 This project uses [code generated libraries](https://docs.flutter.dev/development/data-and-backend/json#serializing-json-using-code-generation-libraries) for JSON handling with classes, and for unit tests mocks.
 
-To generate code once, use `flutter pub run build_runner build`. To continuously regenerate use `flutter pub run build_runner watch`.
+To generate code once, use `dart run build_runner build`. To continuously regenerate use `dart run build_runner watch`.
 
 The generated files are comitted to the repo, so you shouldn't have to do this unless you are making changes.
 

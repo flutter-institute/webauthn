@@ -15,9 +15,11 @@ import 'package:webauthn/src/db/credential.dart';
 import 'package:webauthn/src/enums/attestation_type.dart';
 import 'package:webauthn/src/enums/public_key_credential_type.dart';
 import 'package:webauthn/src/exceptions.dart';
+import 'package:webauthn/src/models/create_credential_options.dart';
 import 'package:webauthn/src/models/get_assertion_options.dart';
 import 'package:webauthn/src/models/make_credential_options.dart';
 import 'package:webauthn/src/models/public_key_credential_descriptor.dart';
+import 'package:webauthn/src/models/public_key_credential_parameters.dart';
 import 'package:webauthn/src/util/credential_safe.dart';
 import 'package:webauthn/src/util/webauthn_cryptography.dart';
 
@@ -25,6 +27,32 @@ import 'authenticator_test.mocks.dart';
 
 typedef CredentialFinder = Future<Credential?> Function(Invocation args);
 typedef CredentialsFinder = Future<List<Credential>> Function(Invocation args);
+
+const credentialCreationOptions = '''{
+  "publicKey": {
+    "rp": {
+      "id": "example.com",
+      "name": "ACME"
+    },
+    "user": {
+      "id": "BgcICQA=",
+      "name": "test-name",
+      "displayName": "Test Name"
+    },
+    "challenge": "AQIDBA==",
+    "pubKeyCredParams": [
+      {"type": "public-key", "alg": -7}
+    ],
+    "timeout": 600000,
+    "attestation": "none",
+    "authenticatorSelection": {
+      "authenticatorAttachment": "platform",
+      "requireResidentKey": false,
+      "userVerification": "discouraged"
+    }
+  }
+}
+''';
 
 const makeCredentialJson = '''{
     "authenticatorExtensions": "",
@@ -241,7 +269,8 @@ void main() {
       expect(data, contains('attStmt'));
       final attStmt = data['attStmt'] as Map;
       expect(attStmt, contains('alg'));
-      expect(attStmt['alg'].toString(), equals(WebauthnCrytography.signingAlgoId.toString()));
+      expect(attStmt['alg'].toString(),
+          equals(WebauthnCrytography.signingAlgoId.toString()));
       expect(attStmt, contains('sig'));
       expect(attStmt['sig'] as List, hasLength(signatureDataLength));
     }
@@ -251,7 +280,8 @@ void main() {
 
     final jsonEncoded = json.decode(attObj.toJson());
     jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
-    jsonEncoded['attStmt']['sig'] = base64.decode(jsonEncoded['attStmt']['sig']);
+    jsonEncoded['attStmt']['sig'] =
+        base64.decode(jsonEncoded['attStmt']['sig']);
     validateAttestationMap(jsonEncoded);
 
     final credentialId = attObj.getCredentialId();
@@ -357,6 +387,154 @@ void main() {
 
       expect(() => getSut().makeCredential(options),
           throwsA((e) => e is KeyPairNotFound));
+    });
+  });
+
+  group('create options', () {
+    late CreateCredentialOptions options;
+
+    setUp(() {
+      options = CreateCredentialOptions.fromJson(
+          jsonDecode(credentialCreationOptions));
+    });
+
+    test('correct makeCredential options', () async {
+      final sut = getSut();
+      final (clientData, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+
+      expect(clientData.type, 'webauthn.create');
+      expect(clientData.origin, equals('example.com'));
+      expect(clientData.crossOrigin, equals(false));
+      expect(clientData.challenge, equals('AQIDBA=='));
+      expect(clientData.tokenBinding, isNull);
+
+      expect(creds.clientDataHash, equals(clientData.hash()));
+      expect(creds.rpEntity.id, equals(options.publicKey.rpEntity.id));
+      expect(creds.rpEntity.name, equals(options.publicKey.rpEntity.name));
+      expect(creds.userEntity, equals(options.publicKey.userEntity));
+      expect(creds.requireResidentKey, equals(false));
+      expect(creds.requireUserPresence, equals(true));
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.credTypesAndPubKeyAlgs, hasLength(1));
+      expect(
+          creds.credTypesAndPubKeyAlgs[0].credType.value, equals('public-key'));
+      expect(creds.credTypesAndPubKeyAlgs[0].pubKeyAlgo, equals(-7));
+    });
+
+    test('default rpId', () async {
+      options.publicKey.rpEntity.id = '';
+
+      final sut = getSut();
+      final (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+
+      expect(options.publicKey.rpEntity.id, equals(''));
+      expect(creds.rpEntity.id, equals('example.com'));
+    });
+
+    test('default credTypesAndPubKeyAlgs', () async {
+      options.publicKey.pubKeyCredParams = [];
+
+      final sut = getSut();
+      final (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+
+      expect(creds.credTypesAndPubKeyAlgs, hasLength(1));
+      expect(
+          creds.credTypesAndPubKeyAlgs[0].credType.value, equals('public-key'));
+      expect(creds.credTypesAndPubKeyAlgs[0].pubKeyAlgo, equals(-7));
+    });
+
+    test('translate requireResidentKey', () async {
+      final sut = getSut();
+
+      // Resident key is unset
+      options.publicKey.authenticatorSelection.residentKey = "";
+      options.publicKey.authenticatorSelection.requireResidentKey = true;
+      var (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireResidentKey, equals(true));
+
+      options.publicKey.authenticatorSelection.requireResidentKey = false;
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireResidentKey, equals(false));
+
+      // Resident key required
+      options.publicKey.authenticatorSelection.residentKey = "required";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireResidentKey, equals(true));
+
+      // Resident key preferred
+      options.publicKey.authenticatorSelection.residentKey = "preferred";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireResidentKey, equals(true));
+
+      // Resident key discouraged
+      options.publicKey.authenticatorSelection.residentKey = "discouraged";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireResidentKey, equals(false));
+    });
+
+    test('translate requireUserVerification', () async {
+      final sut = getSut(authenticationRequired: true);
+
+      // User verification required
+      options.publicKey.authenticatorSelection.userVerification = "required";
+      var (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(true));
+      expect(creds.requireUserPresence, equals(false));
+
+      // User verificiation discouraged
+      options.publicKey.authenticatorSelection.userVerification = "discouraged";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.requireUserPresence, equals(true));
+
+      // User verification discouraged / has local auth
+      when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => true);
+      options.publicKey.authenticatorSelection.userVerification = "preferred";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(true));
+      expect(creds.requireUserPresence, equals(false));
+
+      // User verification discouraged / no local auth
+      when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => false);
+      options.publicKey.authenticatorSelection.userVerification = "preferred";
+      (_, creds) =
+          await sut.createCredentialOptions('example.com', options, true);
+      expect(creds.requireUserVerification, equals(false));
+      expect(creds.requireUserPresence, equals(true));
+    });
+
+    test('error on origin values', () {
+      final sut = getSut();
+      expect(
+          () => sut.createCredentialOptions('example.com', options, false),
+          throwsA((e) =>
+              e is CredentialCreationException &&
+              e.message.contains('Not Allowed')));
+    });
+
+    test('error on unsupported cred types', () {
+      final sut = getSut();
+
+      options.publicKey.pubKeyCredParams = [
+        PublicKeyCredentialParameters(
+            type: PublicKeyCredentialType.publicKey, alg: 1337),
+      ];
+      expect(
+          () => sut.createCredentialOptions('example.com', options, true),
+          throwsA((e) =>
+              e is CredentialCreationException &&
+              e.message.contains('Not Supported')));
     });
   });
 }

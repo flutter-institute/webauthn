@@ -51,6 +51,7 @@ async function doTestCreate() {
     const userId = rawUserId.toString('base64url');
 
     const registrationOptions = await f2l.attestationOptions();
+    
 
     const challenge = Buffer.from(registrationOptions.challenge).toString('base64url');
     const clientDataJson = {

@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'package:webauthn/src/enums/attestation_type.dart';
-import 'package:webauthn/src/util/webauthn_cryptography.dart';
 
-import 'attestation.dart';
+import '../attestation.dart';
+import '../../enums/attestation_type.dart';
+import '../../util/webauthn_cryptography.dart';
 
 class PackedSelfAttestation extends Attestation {
   final Uint8List signature;

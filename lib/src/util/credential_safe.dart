@@ -67,7 +67,8 @@ class CredentialSafe {
   Future<KeyPair?> _loadKeyPairFromAlias(String alias) async {
     final encoded = await _storage.read(key: alias);
     if (encoded != null) {
-      final cborList = cbor.decode(base64Url.decode(padBase64(encoded))) as CborList;
+      final cborList =
+          cbor.decode(base64Url.decode(padBase64(encoded))) as CborList;
       final eccPrivateKey = cborList[0].toObject() as BigInt;
       final pk = EcPrivateKey(
         eccPrivateKey: eccPrivateKey,

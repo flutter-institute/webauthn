@@ -1,19 +1,18 @@
+import 'package:json_annotation/json_annotation.dart';
+
 /// Enum for the types of attestations that are supported
+@JsonEnum(valueField: 'value')
 enum AttestationType {
-  none,
-  packed;
-}
+  none('none'),
+  packed('packed');
 
-const _noneType = 'none';
-const _packedType = 'packed';
+  const AttestationType(this.value);
+  final String value;
 
-extension AttestationTypeStringValue on AttestationType {
-  String get value {
-    switch (this) {
-      case AttestationType.none:
-        return _noneType;
-      case AttestationType.packed:
-        return _packedType;
-    }
+  static AttestationType fromString(String string) {
+    return AttestationType.values.firstWhere(
+      (element) => element.value == string,
+      orElse: () => AttestationType.none,
+    );
   }
 }

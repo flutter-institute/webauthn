@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
 
-import 'attestation.dart';
-import '../enums/attestation_type.dart';
+import '../attestation.dart';
+import '../../enums/attestation_type.dart';
 
 class NoneAttestation extends Attestation {
   NoneAttestation(super.authData);

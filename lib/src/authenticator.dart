@@ -15,12 +15,15 @@ import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
 import 'models/assertion.dart';
 import 'models/attestation.dart';
+import 'models/attestations/none_attestation.dart';
+import 'models/attestations/packed_self_attestation.dart';
 import 'models/authentication_localization_options.dart';
+import 'models/collected_client_data.dart';
+import 'models/create_credential_options.dart';
 import 'models/cred_type_pub_key_algo_pair.dart';
 import 'models/get_assertion_options.dart';
 import 'models/make_credential_options.dart';
-import 'models/none_attestation.dart';
-import 'models/packed_self_attestation.dart';
+import 'models/rp_entity.dart';
 import 'util/credential_safe.dart';
 import 'util/webauthn_cryptography.dart';
 
@@ -78,6 +81,101 @@ class Authenticator {
   @visibleForTesting
   WebauthnCrytography get crytography {
     return _crypto;
+  }
+
+  /// Perform portions of the internal Create operations. This will help to
+  /// convert the options received from the relying party for use with
+  /// the [makeCredential] method
+  /// @see https://www.w3.org/TR/webauthn/#sctn-createCredential
+  Future<(CollectedClientData, MakeCredentialOptions)> createCredentialOptions(
+    String origin,
+    CreateCredentialOptions options,
+    bool sameOriginWithAncestor,
+  ) async {
+    if (!sameOriginWithAncestor) {
+      throw CredentialCreationException('Not Allowed');
+    }
+
+    // Step 1-5
+    final pkOptions = options.publicKey;
+
+    // TODO step 6 - validate opaque origin
+    // TODO step 7 - validate valid domain
+
+    // Step 8
+    String rpId = pkOptions.rpEntity.id;
+    if (rpId.isEmpty) {
+      rpId = origin;
+    }
+
+    // Step 9-10
+    late List<CredTypePubKeyAlgoPair> credTypesAndPubKeyAlgs;
+    if (pkOptions.pubKeyCredParams.isEmpty) {
+      credTypesAndPubKeyAlgs = [
+        const CredTypePubKeyAlgoPair(
+          credType: PublicKeyCredentialType.publicKey,
+          pubKeyAlgo: WebauthnCrytography.signingAlgoId,
+        ),
+      ];
+    } else {
+      credTypesAndPubKeyAlgs = pkOptions.pubKeyCredParams
+          .where((e) =>
+              e.alg == WebauthnCrytography.signingAlgoId &&
+              e.type == PublicKeyCredentialType.publicKey)
+          .map((e) => e.toAlgoPair())
+          .toList();
+
+      if (credTypesAndPubKeyAlgs.isEmpty) {
+        throw CredentialCreationException('Not Supported');
+      }
+    }
+
+    // TODO - step 11-12 extensions
+
+    // Step 13
+    final collectedClientData = CollectedClientData.fromCredentialCreateOptions(
+      type: 'webauthn.create',
+      origin: origin,
+      sameOriginWithAncestor: sameOriginWithAncestor,
+      options: pkOptions,
+    );
+
+    // Step 20.3
+    final authSelection = pkOptions.authenticatorSelection;
+    var requireResidentKey = authSelection.requireResidentKey;
+    if (authSelection.residentKey == "required") {
+      requireResidentKey = true;
+    } else if (authSelection.residentKey == "preferred") {
+      // We can store it locally, so this is true
+      requireResidentKey = true;
+    } else if (authSelection.residentKey == "discouraged") {
+      requireResidentKey = false;
+    }
+
+    // Step 20.4
+    late bool requireUserVerification;
+    if (authSelection.userVerification == "required") {
+      requireUserVerification = true;
+    } else if (authSelection.userVerification == "preferred") {
+      requireUserVerification =
+          await _credentialSafe.supportsUserVerification();
+    } else if (authSelection.userVerification == "discouraged") {
+      requireUserVerification = false;
+    }
+
+    // Return options
+    return (
+      collectedClientData,
+      MakeCredentialOptions(
+        clientDataHash: collectedClientData.hash(),
+        rpEntity: RpEntity(id: rpId, name: pkOptions.rpEntity.name),
+        userEntity: pkOptions.userEntity,
+        requireResidentKey: requireResidentKey,
+        requireUserPresence: !requireUserVerification,
+        requireUserVerification: requireUserVerification,
+        credTypesAndPubKeyAlgs: credTypesAndPubKeyAlgs,
+      )
+    );
   }
 
   /// Perform the authenticatorMakeCredential operation as defined by the WebAuthn spec
@@ -279,7 +377,8 @@ class Authenticator {
       // Verify that user verification is available
       if (!await _credentialSafe.supportsUserVerification()) {
         _logger.w('User verification is required but not available');
-        throw GetAssertionException('User verification is required but not available');
+        throw GetAssertionException(
+            'User verification is required but not available');
       }
 
       final reason = localizationOptions.localizedReason ??
@@ -294,8 +393,7 @@ class Authenticator {
 
       // If we failed, error out
       if (!success) {
-        throw GetAssertionException(
-            'Failed to authenticate with biometrics');
+        throw GetAssertionException('Failed to authenticate with biometrics');
       }
 
       // Create a signer to use for this
