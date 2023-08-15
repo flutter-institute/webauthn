@@ -10,15 +10,17 @@ import 'package:logger/logger.dart';
 
 import 'constants.dart' as c;
 import 'db/credential.dart';
+import 'enums/attestation_type.dart';
 import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
 import 'models/assertion.dart';
 import 'models/attestation.dart';
+import 'models/attestations/none_attestation.dart';
+import 'models/attestations/packed_self_attestation.dart';
 import 'models/authentication_localization_options.dart';
 import 'models/cred_type_pub_key_algo_pair.dart';
 import 'models/get_assertion_options.dart';
 import 'models/make_credential_options.dart';
-import 'models/none_attestation.dart';
 import 'util/credential_safe.dart';
 import 'util/webauthn_cryptography.dart';
 
@@ -26,11 +28,12 @@ class Authenticator {
   // Allow external referednces
   static const shaLength = c.shaLength;
   static const authenticationDataLength = c.authenticationDataLength;
+  static const signatureDataLength = c.signatureDataLength;
 
   // ignore: constant_identifier_names
   static const ES256_COSE = CredTypePubKeyAlgoPair(
     credType: PublicKeyCredentialType.publicKey,
-    pubKeyAlgo: -7,
+    pubKeyAlgo: WebauthnCrytography.signingAlgoId,
   );
 
   /// Create a new instance of the Authenticator.
@@ -38,14 +41,14 @@ class Authenticator {
   /// Pass `true` for [authenticationRequired] if we want to require authentication
   /// before allowing the key to be accessed and used.
   /// Pass `true` for [strongboxRequired] if we want this key to be managed by the
-  /// system strongbox.
-  /// The default dependencies can be overwritten by passing a mock, or other instance,
-  /// to [credentialSafe] or [cryptography]
+  /// system strongbox. NOTE: this option is currently ignored because we don't
+  /// have access to the system strongbox on all the platforms.
   ///
-  /// NOTE: The options [strongboxRequired] is currently ignored because we don't
-  /// have access to the system strongbox on all the platforms
+  /// The default dependencies can be overwritten by passing a mock, or other instance,
+  /// to [credentialSafe], [cryptography], or [localAuth]. These should be left as is
+  /// except when mocked for unit tests.
   Authenticator(
-    bool authenticationRequired,
+    this.authenticationRequired,
     bool strongboxRequired, {
     CredentialSafe? credentialSafe,
     WebauthnCrytography? cryptography,
@@ -59,6 +62,7 @@ class Authenticator {
             ),
         _localAuth = localAuth ?? LocalAuthentication();
 
+  final bool authenticationRequired;
   final CredentialSafe _credentialSafe;
   final WebauthnCrytography _crypto;
   final LocalAuthentication _localAuth;
@@ -77,14 +81,30 @@ class Authenticator {
     return _crypto;
   }
 
+  /// Creates a new instance of the Authenticator required to be used with a given
+  /// set of Make Credential [options] and processes the request.
+  /// @see [makeCredential] for a description of the arguments
+  static Future<Attestation> handleMakeCredential(
+    MakeCredentialOptions options, {
+    var attestationType = AttestationType.packed,
+    var localizationOptions = const AuthenticationLocalizationOptions(),
+  }) =>
+      Authenticator(options.requireUserVerification, true).makeCredential(
+        options,
+        attestationType: attestationType,
+        localizationOptions: localizationOptions,
+      );
+
   /// Perform the authenticatorMakeCredential operation as defined by the WebAuthn spec
   /// @see https://www.w3.org/TR/webauthn/#sctn-op-make-cred
   ///
   /// The [options] to create the credential should be passed. An [Attestation]
   /// containing the new credential and attestation information is returned.
-  Future<Attestation> makeCredential(MakeCredentialOptions options,
-      {var localizationOptions =
-          const AuthenticationLocalizationOptions()}) async {
+  Future<Attestation> makeCredential(
+    MakeCredentialOptions options, {
+    var attestationType = AttestationType.packed,
+    var localizationOptions = const AuthenticationLocalizationOptions(),
+  }) async {
     // We are going to use a flag rather than explicitly invoking deny-behavior
     // because the spec asks us to pretend everything is normal while asynchronous
     // operations (like asking user consent) happen to ensure privacy guarantees.
@@ -126,25 +146,32 @@ class Authenticator {
     // Our authenticator will store resident keys regardless, so we can disregard the value of this parameter
 
     // Step 5: Check requireUserVerification
+    final requiresUserVerification =
+        authenticationRequired || options.requireUserVerification;
     final supportsUserVerifiation =
         await _credentialSafe.supportsUserVerification();
-    if (options.requireUserVerification && !supportsUserVerifiation) {
+    if (requiresUserVerification && !supportsUserVerifiation) {
       _logger.w('User verification is required but not available');
       throw CredentialCreationException(
           'User verification is required but not available');
     }
 
     // NOTE: We are switching the order of steps 6 and 7/8 because we need to have the credential
-    // created in order to  use it in a biometric prompt. We will delete the credential
+    // created in order to use it in a biometric prompt. We will delete the credential
     // if the biometric prompt fails.
 
     // Step 7: Generate a new credential
     late Credential credentialSource;
     try {
       credentialSource = await _credentialSafe.generateCredential(
-          options.rpEntity.id, options.userEntity.id, options.userEntity.name);
+        options.rpEntity.id,
+        options.userEntity.id,
+        options.userEntity.name,
+        requiresUserVerification,
+      );
     } on Exception catch (e) {
-      _logger.w('Couldn\'t generate credential', e);
+      // Step 8: throw error
+      _logger.w('Couldn\'t generate credential', error: e);
       throw CredentialCreationException('Couldn\'t generate credential');
     }
 
@@ -166,7 +193,7 @@ class Authenticator {
       // TODO local_auth is not going to work for what we need here.
       // It is not returning the signature from keystore. If we look
       // at the flutter_biometrics plugin, it is much closer. It is not
-      // actually letting us pass a crypto object and it is discgarding
+      // actually letting us pass a crypto object and it is discarding
       // the local credential and creating a new key. We're probably
       // going to need our own solution in the future
 
@@ -190,8 +217,9 @@ class Authenticator {
       signer = WebauthnCrytography.createSigner(keyPair.privateKey!);
     }
 
-    // Steps 8-13, with the optional signer
-    attestation = await _createAttestation(options, credentialSource, signer);
+    // Steps 9-13, with the optional signer
+    attestation = await _createAttestation(
+        attestationType, options, credentialSource, signer);
 
     // We finish up Step 3 here by checking excludeFlag at the end (so we've still gotten
     // the user's conset to create a credential etc)
@@ -205,6 +233,21 @@ class Authenticator {
     return attestation;
   }
 
+  /// Creates a new instance of the Authenticator required to be used with a given
+  /// set of Get Assertion [options] and processes the request.
+  /// @see [getAssertion] for a description of the arguments
+  static Future<Assertion> handleGetAssertion(GetAssertionOptions options,
+          {var localizationOptions =
+              const AuthenticationLocalizationOptions()}) =>
+      Authenticator(options.requireUserVerification, true).getAssertion(
+        options,
+        localizationOptions: localizationOptions,
+      );
+
+  /// Perform the authenticatorGetAssertion operation as defined by the WebAuthn spec
+  /// @see https://www.w3.org/TR/webauthn/#sctn-op-get-assertion
+  /// The [options] to get the assertion should be passed. An [Assertion]
+  /// containing the selected credential and proofs is returned.
   Future<Assertion> getAssertion(GetAssertionOptions options,
       {var localizationOptions =
           const AuthenticationLocalizationOptions()}) async {
@@ -224,8 +267,7 @@ class Authenticator {
     var credentials = await _credentialSafe.getKeysForEntity(options.rpId);
 
     // Step 2-3: Actually parse allowCredentialDescriptorList
-    if (options.allowCredentialDescriptorList != null &&
-        options.allowCredentialDescriptorList!.isNotEmpty) {
+    if (options.allowCredentialDescriptorList?.isNotEmpty == true) {
       final filteredCredentials = <Credential>[];
 
       const eq = ListEquality();
@@ -269,6 +311,13 @@ class Authenticator {
             .keyRequiresVerification(selectedCredential.keyPairAlias) ??
         false;
     if (options.requireUserVerification || keyNeedsUnlocking) {
+      // Verify that user verification is available
+      if (!await _credentialSafe.supportsUserVerification()) {
+        _logger.w('User verification is required but not available');
+        throw GetAssertionException(
+            'User verification is required but not available');
+      }
+
       final reason = localizationOptions.localizedReason ??
           'Authenticate to create an assertion';
 
@@ -281,8 +330,7 @@ class Authenticator {
 
       // If we failed, error out
       if (!success) {
-        throw CredentialCreationException(
-            'Failed to authenticate with biometrics');
+        throw GetAssertionException('Failed to authenticate with biometrics');
       }
 
       // Create a signer to use for this
@@ -304,7 +352,7 @@ class Authenticator {
   }
 
   /// The second half of the makeCredential process
-  Future<Attestation> _createAttestation(
+  Future<Attestation> _createAttestation(AttestationType attestationType,
       MakeCredentialOptions options, Credential credential,
       [Signer<PrivateKey>? signer]) async {
     // TODO Step 9: process extensions
@@ -322,15 +370,15 @@ class Authenticator {
     final rpIdHash = WebauthnCrytography.sha256(options.rpEntity.id);
     final authenticatorData = await _constructAuthenticatorData(
         rpIdHash, attestedCredentialData, 0); // 164 bytes
-    assert(authenticatorData.length == 164);
+    assert(authenticatorData.length == authenticationDataLength);
 
     // Step 13: Return attestation object
-    return await _constructAttestation(authenticatorData,
+    return await _constructAttestation(attestationType, authenticatorData,
         options.clientDataHash, credential.keyPairAlias, signer);
   }
 
   /// Constructs an attestedCredentialData object per the WebAuthn Spec
-  /// @see https://www.w3.org/TR/webauthn/#sec-attested-credential-data
+  /// @see https://www.w3.org/TR/webauthn/#sctn-attested-credential-data
   Future<Uint8List> _constructAttestedCredentialData(
       Credential credential) async {
     // | AAGUID | L | credentialId | credentialPublicKey |
@@ -354,7 +402,7 @@ class Authenticator {
   }
 
   /// Constructs an authenticatorData object per the WebAuthn spec
-  /// @see https://www.w3.org/TR/webauthn/#sec-authenticator-data
+  /// @see https://www.w3.org/TR/webauthn/#sctn-authenticator-data
   Future<Uint8List> _constructAuthenticatorData(
       Uint8List rpIdHash, Uint8List? credentialData, int authCounter) async {
     if (rpIdHash.length != shaLength) {
@@ -362,8 +410,8 @@ class Authenticator {
           'rpIdHash must be a $shaLength-byte SHA-256 hash',
           arguments: {'rpIdHash': rpIdHash});
     }
-    // | rpIdHash | flags | useCounter | authenticatorData
-    // |    32    |   1   |     4      |     127 or 0
+    // | rpIdHash | flags | useCounter | credentialData | extensions
+    // |    32    |   1   |     4      |     127 or 0   |   N or 0
 
     int flags = 0x01; // user present
     if (await _credentialSafe.supportsUserVerification()) {
@@ -384,16 +432,18 @@ class Authenticator {
   }
 
   /// Construct an AttestationObject per the WebAuthn spec
-  /// @see https://www.w3.org/TR/webauthn/#generating-an-attestation-object
+  /// @see https://www.w3.org/TR/webauthn/#sctn-generating-an-attestation-object
   /// A package self-attestation or "none" attestation will be returned
-  /// @see https://www.w3.org/TR/webauthn/#attestation-formats
+  /// @see https://www.w3.org/TR/webauthn/#sctn-attestation-formats
   Future<Attestation> _constructAttestation(
-      Uint8List authenticatorData,
-      Uint8List clientDataHash,
-      String keyPairAlias,
-      Signer<PrivateKey>? signer) async {
+    AttestationType attestationType,
+    Uint8List authenticatorData,
+    Uint8List clientDataHash,
+    String keyPairAlias,
+    Signer<PrivateKey>? signer,
+  ) async {
     // We are going to create a signature over the relevant data fields.
-    // See https://www.w3.org/TR/webauthn/#attestation-formats
+    // See https://www.w3.org/TR/webauthn/#sctn-attestation-formats
     // We need to sign the concatenation of the authenticationData and clientDataHash
     // The Attestation knows how to CBOR encode itself
 
@@ -412,17 +462,21 @@ class Authenticator {
       ..add(clientDataHash);
 
     // Sanity check to make sure the data is the length we are expecting
-    assert(toSign.length == 164 + 32);
+    assert(toSign.length == authenticationDataLength + 32);
 
     // Sign our data
     final signatureBytes = _crypto.performSignature(toSign.toBytes(),
         privateKey: privateKey, signer: signer);
 
     // Sanity check on signature
-    assert(signatureBytes.length == 70);
+    assert(signatureBytes.length == signatureDataLength);
 
-    // return PackedSelfAttestationObject(authenticatorData, signatureBytes);
-    return NoneAttestation(authenticatorData);
+    switch (attestationType) {
+      case AttestationType.none:
+        return NoneAttestation(authenticatorData);
+      case AttestationType.packed:
+        return PackedSelfAttestation(authenticatorData, signatureBytes);
+    }
   }
 
   Future<Assertion> _createAssertion(GetAssertionOptions options,
@@ -463,7 +517,7 @@ class Authenticator {
           privateKey: privateKey, signer: signer);
     } catch (e) {
       // Step 12: Throw if any errors occured while generating the assertion signature
-      _logger.e('Exception occured while generating assertion', e);
+      _logger.e('Exception occured while generating assertion', error: e);
       throw GetAssertionException(
           'Exception occured while generating assertion');
     }

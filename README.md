@@ -36,7 +36,7 @@ android {
 
 This project uses [code generated libraries](https://docs.flutter.dev/development/data-and-backend/json#serializing-json-using-code-generation-libraries) for JSON handling with classes, and for unit tests mocks.
 
-To generate code once, use `flutter pub run build_runner build`. To continuously regenerate use `flutter pub run build_runner watch`.
+To generate code once, use `dart run build_runner build`. To continuously regenerate use `dart run build_runner watch`.
 
 The generated files are comitted to the repo, so you shouldn't have to do this unless you are making changes.
 
@@ -46,7 +46,7 @@ The test suite can be run using `flutter test` command.
 
 ### Sqlite Test Setup
 
-Any test of an object interacting with a plugin needs to have a mock created to abstract out the plugin's behavior. The one exception to this is the `db/` tests that were designed to valid that the queries return the expected data. This is accomplished using the [sqflite_common_ffi](https://pub.dev/packages/sqflite_common_ffi) package. Depending on what platform you are using, you will need to follow the [Getting Started](https://pub.dev/packages/sqflite_common_ffi#getting-started) steps for your platform to make sure that you have valid sqlite3 libraries on your system.
+Any test of an object interacting with a plugin needs to have a mock created to abstract out the plugin's behavior. The one exception to this is the `db/` tests that were designed to validate that the queries return the expected data. This is accomplished using the [sqflite_common_ffi](https://pub.dev/packages/sqflite_common_ffi) package. Depending on what platform you are using, you will need to follow the [Getting Started](https://pub.dev/packages/sqflite_common_ffi#getting-started) steps for your platform to make sure that you have valid sqlite3 libraries on your system.
 
 ## Usage
 
@@ -111,9 +111,14 @@ Then, make a new credential with the given options:
 final attestation = authenticator.makeCredential(options);
 ```
 
-One you have an `Attestation`, you can also retrieve its CBOR representation as follows:
+Once you have an `Attestation`, you can also retrieve its CBOR representation as follows:
 ```dart
-Uint8List attestationBytes = attestation.toCBOR();
+Uint8List attestationBytes = attestation.asCBOR();
+```
+
+Or you can retrieve a JSON representation as follows:
+```dart
+String attestationJson = attestation.asJSON();
 ```
 
 ### Get Assertion (User Login)
@@ -142,3 +147,48 @@ final getAssertionOptions = GetAssertionOptions.fromJson(options);
 ```
 
 Step 7 of [authenticatorGetAssertion](https://www.w3.org/TR/webauthn/#sctn-op-get-assertion) requires that the authenticator prompt a credential selection. This has not yet been implemented, so the most recently created credential is currently used.
+
+### WebAuthn API
+
+If you are implementing your authenticator to interact directly with the Relying Party's application, then you need to be sure to implement the WebAuthn API before trying to call the authenticator according to the [Web Authentication API Spec](https://www.w3.org/TR/webauthn/#sctn-api).
+
+The authenticator library has helper methods to help make a few of these operations easier.
+
+#### Create a New Credential
+
+When you need to [Create a New Credential](https://www.w3.org/TR/webauthn/#sctn-createCredential) you will receive a `CreateCredentialOptions` from the Relying Party. The library can handle the basic processing as follows:
+
+```dart
+final webApi = WebAPI();
+final rpOptions = CreateCredentialOptions.fromJson(optionsPayload);
+final makeCredentialOptions = await webApi.createMakeCredentialOptions(
+    origin, // The origin from which you received the request
+    rpOptions,
+    sameOriginWithAncestor, // Whether we are acting on the same origin
+);
+// ... any code your app needs to do before creating the credential
+final attestation = await Authenticator.handleMakeCredential(makeCredentialOptions);
+// ... any code your app needs to do before responding
+final responseObj = await webApi.createAttestationResponse(attestation);
+final responseJson = json.encode(responseObj.toJson());
+```
+
+#### Make an Assertion
+
+When you need to [Make an Assertion](https://www.w3.org/TR/webauthn/#sctn-getAssertion) you will receive a `CredentialRequestOptions` from the Relying Party. The authenticator will handle the basic processing as follows:
+
+```dart
+final webApi = WebAPI();
+final rpOptions = CredentialRequestOptions.fromJson(optionsPayload);
+final getAssertionOptions = await webApi.createGetAssertionOptions(
+    origin, // The origin from which you received the request
+    rpOptions,
+    sameOriginWithAncestor, // Whether we are acting on the same origin
+);
+
+// ... any code your app needs to do before getting the assertion
+final assertion = await Authenticator.handleGetAssertion(getAssertionOptions);
+// ... any code your app needs to do before responding
+final responseObj = await webApi.createAssertionResponse(assertion);
+final responseJson = json.encode(responseObj.toJson());
+```

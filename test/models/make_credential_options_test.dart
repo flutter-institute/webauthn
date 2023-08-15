@@ -14,8 +14,7 @@ void main() {
 
   setUp(() {
     json = {
-      'clientDataHash':
-          '8zrjvJoizXVkmQp5R4mVRAmXcBOWb7Go9Dw1d2uDOpU=', // f33ae3bc9a22cd7564990a794789954409977013966fb1a8f43c35776b833a95
+      'clientDataHash': '8zrjvJoizXVkmQp5R4mVRAmXcBOWb7Go9Dw1d2uDOpU=',
       'rp': {
         'id': 'test-id',
         'name': 'test-name',
@@ -119,8 +118,8 @@ void main() {
     expect(options.rpEntity.name, equals('test-name'));
     expect(options.userEntity, isNotNull);
     expect(options.userEntity.id, equals([6, 7, 8, 9, 0]));
-    expect(options.userEntity.displayName, equals('test-display-name'));
     expect(options.userEntity.name, equals('test-user-name'));
+    expect(options.userEntity.displayName, equals('test-display-name'));
     expect(options.requireResidentKey, equals(json['requireResidentKey']));
     expect(options.requireUserPresence, equals(json['requireUserPresence']));
     expect(options.requireUserVerification,

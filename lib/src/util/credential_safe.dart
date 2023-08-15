@@ -7,6 +7,8 @@ import 'package:crypto_keys/crypto_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../helpers/base64.dart';
+import './webauthn_cryptography.dart';
 import '../db/credential.dart';
 import '../exceptions.dart';
 
@@ -32,8 +34,6 @@ class CredentialSafe {
   final CredentialSchema _credentialSchema;
   final LocalAuthentication _localAuth;
 
-  static final keyCurve = curves.p256;
-
   Future<bool> supportsUserVerification() async {
     if (authenticationRequired) {
       return await _localAuth.isDeviceSupported();
@@ -43,7 +43,7 @@ class CredentialSafe {
 
   /// Generate a new ES256 KeyPair and store it to our secure storage using the given alias
   Future<KeyPair> _generateNewES256KeyPair(String alias) async {
-    final keypair = KeyPair.generateEc(keyCurve);
+    final keypair = KeyPair.generateEc(WebauthnCrytography.keyCurve);
     final pk = keypair.privateKey as EcPrivateKey;
     final pub = keypair.publicKey as EcPublicKey;
 
@@ -58,7 +58,7 @@ class CredentialSafe {
       CborBigInt(pub.xCoordinate),
       CborBigInt(pub.yCoordinate),
     ]));
-    await _storage.write(key: alias, value: base64.encode(encoded));
+    await _storage.write(key: alias, value: base64Url.encode(encoded));
 
     return keypair;
   }
@@ -67,14 +67,21 @@ class CredentialSafe {
   Future<KeyPair?> _loadKeyPairFromAlias(String alias) async {
     final encoded = await _storage.read(key: alias);
     if (encoded != null) {
-      final cborList = cbor.decode(base64.decode(encoded)) as CborList;
+      final cborList =
+          cbor.decode(base64Url.decode(padBase64(encoded))) as CborList;
       final eccPrivateKey = cborList[0].toObject() as BigInt;
-      final pk = EcPrivateKey(eccPrivateKey: eccPrivateKey, curve: keyCurve);
+      final pk = EcPrivateKey(
+        eccPrivateKey: eccPrivateKey,
+        curve: WebauthnCrytography.keyCurve,
+      );
 
       final xCoordinate = cborList[1].toObject() as BigInt;
       final yCoordinate = cborList[2].toObject() as BigInt;
       final pub = EcPublicKey(
-          xCoordinate: xCoordinate, yCoordinate: yCoordinate, curve: keyCurve);
+        xCoordinate: xCoordinate,
+        yCoordinate: yCoordinate,
+        curve: WebauthnCrytography.keyCurve,
+      );
 
       return KeyPair(publicKey: pub, privateKey: pk);
     }
@@ -88,9 +95,13 @@ class CredentialSafe {
   ///   [userHandle] a unique ID for the user
   ///   [username] A human-readable username for the user
   Future<Credential> generateCredential(
-      String rpEntityId, Uint8List userHandle, String username) async {
+    String rpEntityId,
+    Uint8List userHandle,
+    String username, [
+    bool? requireUserVerification,
+  ]) async {
     final credential = Credential.forKey(rpEntityId, userHandle, username,
-        authenticationRequired, strongboxRequired);
+        requireUserVerification ?? authenticationRequired, strongboxRequired);
     // return not captured -- we will retrieve it later
     await _generateNewES256KeyPair(credential.keyPairAlias);
 
@@ -152,8 +163,10 @@ class CredentialSafe {
 
     final encoded = cbor.encode(CborMap({
       const CborSmallInt(1): const CborSmallInt(2), // kty: ECS key type
-      const CborSmallInt(3): const CborSmallInt(-7), // alg: ES256 sig algorithm
-      const CborSmallInt(-1): const CborSmallInt(1), // crv: P-256 curve
+      const CborSmallInt(3): const CborSmallInt(
+          WebauthnCrytography.signingAlgoId), // alg: ES256 sig algorithm
+      const CborSmallInt(-1): const CborSmallInt(
+          WebauthnCrytography.keyCurveId), // crv: P-256 curve
       const CborSmallInt(-2): CborBytes(xCoord), // x-coord
       const CborSmallInt(-3): CborBytes(yCoord), // y-coord
     }));

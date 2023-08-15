@@ -92,7 +92,7 @@ class Credential extends SchemaObject {
     this.strongboxRequired,
   ) : super(null) {
     keyId = RandomHelper.nextBytes(32);
-    keyPairAlias = _keyPairPrefix + base64.encode(keyId.toList());
+    keyPairAlias = _keyPairPrefix + base64Url.encode(keyId.toList());
     keyUseCounter = 0;
   }
 
