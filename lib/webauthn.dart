@@ -4,13 +4,16 @@ library webauthn;
 
 // Public Data that everything needs
 export 'src/authenticator.dart' show Authenticator;
+export 'src/web_api.dart' show WebAPI;
 export 'src/exceptions.dart';
+export 'src/enums/attestation_type.dart';
 export 'src/enums/authenticator_transports.dart';
 export 'src/enums/public_key_credential_type.dart';
 export 'src/models/assertion.dart';
 export 'src/models/attestation.dart';
 
 // Models for handling Web API translation
+export 'src/models/public_key_credential_parameters.dart';
 export 'src/models/create_credential_options.dart';
 export 'src/models/assertion_response.dart';
 export 'src/models/credential_request_options.dart';

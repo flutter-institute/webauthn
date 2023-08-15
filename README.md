@@ -156,19 +156,20 @@ The authenticator library has helper methods to help make a few of these operati
 
 #### Create a New Credential
 
-When you need to [Create a New Credential](https://www.w3.org/TR/webauthn/#sctn-createCredential) you will receive a `CreateCredentialOptions` from the Relying Party. The authenticator will handle the basic processing as follows:
+When you need to [Create a New Credential](https://www.w3.org/TR/webauthn/#sctn-createCredential) you will receive a `CreateCredentialOptions` from the Relying Party. The library can handle the basic processing as follows:
 
 ```dart
+final webApi = WebAPI();
 final rpOptions = CreateCredentialOptions.fromJson(optionsPayload);
-final makeCredentialOptions = await authenticator.createMakeCredentialOptions(
+final makeCredentialOptions = await webApi.createMakeCredentialOptions(
     origin, // The origin from which you received the request
     rpOptions,
     sameOriginWithAncestor, // Whether we are acting on the same origin
 );
 // ... any code your app needs to do before creating the credential
-final attestation = await authenticator.makeCredential(makeCredentialOptions);
-// ... any code your app needs to de before responding
-final responseObj = await authenticator.createAttestationResponse(attestation);
+final attestation = await Authenticator.handleMakeCredential(makeCredentialOptions);
+// ... any code your app needs to do before responding
+final responseObj = await webApi.createAttestationResponse(attestation);
 final responseJson = json.encode(responseObj.toJson());
 ```
 
@@ -177,16 +178,17 @@ final responseJson = json.encode(responseObj.toJson());
 When you need to [Make an Assertion](https://www.w3.org/TR/webauthn/#sctn-getAssertion) you will receive a `CredentialRequestOptions` from the Relying Party. The authenticator will handle the basic processing as follows:
 
 ```dart
+final webApi = WebAPI();
 final rpOptions = CredentialRequestOptions.fromJson(optionsPayload);
-final getAssertionOptions = await authenticator.createGetAssertionOptions(
+final getAssertionOptions = await webApi.createGetAssertionOptions(
     origin, // The origin from which you received the request
     rpOptions,
     sameOriginWithAncestor, // Whether we are acting on the same origin
 );
 
 // ... any code your app needs to do before getting the assertion
-final assertion = await authenticator.getAssertion(getAssertionOptions);
+final assertion = await Authenticator.handleGetAssertion(getAssertionOptions);
 // ... any code your app needs to do before responding
-final responseObj = await authenticator.createAssertionResponse(assertion);
+final responseObj = await webApi.createAssertionResponse(assertion);
 final responseJson = json.encode(responseObj.toJson());
 ```
