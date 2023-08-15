@@ -31,7 +31,7 @@ dependencies:
   local_auth_windows: ^1.0.9
   logger: ^2.0.1
   path: ^1.8.3
-  path_provider: ^2.0.15
+  path_provider: ^2.1.0
   precis: ^0.0.3
   sqflite: ^2.3.0
 
