@@ -161,7 +161,7 @@ When you need to [Create a New Credential](https://www.w3.org/TR/webauthn/#sctn-
 ```dart
 final webApi = WebAPI();
 final rpOptions = CreateCredentialOptions.fromJson(optionsPayload);
-final makeCredentialOptions = await webApi.createMakeCredentialOptions(
+final (clientData, makeCredentialOptions) = await webApi.createMakeCredentialOptions(
     origin, // The origin from which you received the request
     rpOptions,
     sameOriginWithAncestor, // Whether we are acting on the same origin
@@ -169,7 +169,7 @@ final makeCredentialOptions = await webApi.createMakeCredentialOptions(
 // ... any code your app needs to do before creating the credential
 final attestation = await Authenticator.handleMakeCredential(makeCredentialOptions);
 // ... any code your app needs to do before responding
-final responseObj = await webApi.createAttestationResponse(attestation);
+final responseObj = await webApi.createAttestationResponse(clientData, attestation);
 final responseJson = json.encode(responseObj.toJson());
 ```
 
@@ -180,7 +180,7 @@ When you need to [Make an Assertion](https://www.w3.org/TR/webauthn/#sctn-getAss
 ```dart
 final webApi = WebAPI();
 final rpOptions = CredentialRequestOptions.fromJson(optionsPayload);
-final getAssertionOptions = await webApi.createGetAssertionOptions(
+final (clientData, getAssertionOptions) = await webApi.createGetAssertionOptions(
     origin, // The origin from which you received the request
     rpOptions,
     sameOriginWithAncestor, // Whether we are acting on the same origin
@@ -189,6 +189,6 @@ final getAssertionOptions = await webApi.createGetAssertionOptions(
 // ... any code your app needs to do before getting the assertion
 final assertion = await Authenticator.handleGetAssertion(getAssertionOptions);
 // ... any code your app needs to do before responding
-final responseObj = await webApi.createAssertionResponse(assertion);
+final responseObj = await webApi.createAssertionResponse(clientData, assertion);
 final responseJson = json.encode(responseObj.toJson());
 ```
