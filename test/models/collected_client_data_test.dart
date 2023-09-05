@@ -24,6 +24,6 @@ void main() {
 
   test('hashes correctly', () {
     final result = clientData.hashBase64();
-    expect(result, equals('NZRNv3PooBe9wyw7h-jHg-LramAlclxZnTQA2k6jMmc='));
+    expect(result, equals('NZRNv3PooBe9wyw7h-jHg-LramAlclxZnTQA2k6jMmc'));
   });
 }

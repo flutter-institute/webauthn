@@ -1,5 +1,6 @@
-import 'dart:convert';
 import 'dart:typed_data';
+
+import '../helpers/base64.dart';
 
 /// This is an attestation that you own the private key for the give
 /// credentialId that is in the authData. The public key is included
@@ -41,6 +42,6 @@ abstract class Attestation {
   /// it to a string.
   /// @see Figure 5 is helpful: https://www.w3.org/TR/webauthn/#attestation-object
   String getCredentialIdBase64() {
-    return base64Url.encode(getCredentialId());
+    return b64e(getCredentialId());
   }
 }

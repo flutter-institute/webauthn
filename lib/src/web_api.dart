@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:local_auth/local_auth.dart';
 
 import 'enums/public_key_credential_type.dart';
 import 'exceptions.dart';
+import 'helpers/base64.dart';
 import 'models/assertion.dart';
 import 'models/assertion_response.dart';
 import 'models/assertion_response_data.dart';
@@ -22,6 +25,12 @@ class WebAPI {
       : _localAuth = localAuth ?? LocalAuthentication();
 
   final LocalAuthentication _localAuth;
+
+  // Decode a base64 string into its bytes per the WebAuthn standard
+  static Uint8List base64Decode(String base64) => b64d(base64);
+
+  /// Encode a byte list into base64 per the WebAuthn standard
+  static String base64Encode(List<int> bytes) => b64e(bytes);
 
   /// Perform portions of the internal Create operations. This will help to
   /// convert the options received from the relying party for use with

@@ -92,11 +92,11 @@ void main() {
     expect(
         joptions['user'],
         equals({
-          'id': 'BgcICQA=',
+          'id': 'BgcICQA',
           'name': pk.userEntity.name,
           'displayName': pk.userEntity.displayName,
         }));
-    expect(joptions['challenge'], equals('AQIDBA=='));
+    expect(joptions['challenge'], equals('AQIDBA'));
     expect(
         joptions['pubKeyCredParams'],
         equals([

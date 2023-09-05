@@ -189,12 +189,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('Create'),
                 ),
                 const SizedBox(width: 30),
-                TextButton(onPressed: () async {
-                  final data = await Clipboard.getData('text/plain');
-                  if (data != null && data.text != null) {
-                    _optionsController.text = data.text!;
-                  }
-                }, child: const Text('From Clipboard'),),
+                TextButton(
+                  onPressed: () async {
+                    final data = await Clipboard.getData('text/plain');
+                    if (data != null && data.text != null) {
+                      _optionsController.text = data.text!;
+                    }
+                  },
+                  child: const Text('From Clipboard'),
+                ),
                 const SizedBox(width: 30),
                 TextButton(
                   onPressed: () {
@@ -240,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
         });
         _startResetSelection();
 
-        return credential;// attestation.getCredentialIdBase64();
+        return credential; // attestation.getCredentialIdBase64();
       } on AuthenticatorException catch (e) {
         _snackBar('Attestation error: ${e.message}');
         return null;
@@ -293,8 +296,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         'rawId': credentialId,
                         'response': {
                           'clientDataJSON': '',
-                          'attestationObject':
-                              base64Url.encode(credential.attestation.asCBOR()),
+                          'attestationObject': WebAPI.base64Encode(
+                              credential.attestation.asCBOR()),
                         },
                       });
 
@@ -347,7 +350,8 @@ class _MyHomePageState extends State<MyHomePage> {
         final options = GetAssertionOptions.fromJson(json.decode(optionsJson));
 
         final assertion = await _auth.getAssertion(options);
-        final credentialId = base64Url.encode(assertion.selectedCredentialId);
+        final credentialId =
+            WebAPI.base64Encode(assertion.selectedCredentialId);
         final credentialIdx = _credentials.indexWhere(
             (e) => e.attestation.getCredentialIdBase64() == credentialId);
 
@@ -365,7 +369,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     if (assertion != null) {
-      final credentialId = base64Url.encode(assertion.selectedCredentialId);
+      final credentialId = WebAPI.base64Encode(assertion.selectedCredentialId);
       _snackBar('Assertion succeeded for: $credentialId');
       _showAssertionDetails(assertion);
     }
@@ -373,14 +377,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _showAssertionDetails(Assertion assertion) {
     final assertionResponse = {
-      'id': base64Url.encode(assertion.selectedCredentialId),
-      'rawId': base64Url.encode(assertion.selectedCredentialId),
+      'id': WebAPI.base64Encode(assertion.selectedCredentialId),
+      'rawId': WebAPI.base64Encode(assertion.selectedCredentialId),
       'type': 'public-key',
       'response': {
-        'authenticatorData': base64Url.encode(assertion.authenticatorData),
+        'authenticatorData': WebAPI.base64Encode(assertion.authenticatorData),
         'clientDataJSON': '',
-        'signature': base64Url.encode(assertion.signature),
-        'userHandle': base64Url.encode(assertion.selectedCredentialUserHandle),
+        'signature': WebAPI.base64Encode(assertion.signature),
+        'userHandle':
+            WebAPI.base64Encode(assertion.selectedCredentialUserHandle),
       },
     };
 

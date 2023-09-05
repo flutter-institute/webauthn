@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../helpers/base64.dart';
 import 'public_key_credential_creation_options.dart';
 import 'public_key_credential_request_options.dart';
 import 'token_binding.dart';
@@ -32,7 +33,7 @@ class CollectedClientData {
     required PublicKeyCredentialCreationOptions options,
   })  : type = 'webauthn.create',
         crossOrigin = !sameOriginWithAncestor,
-        challenge = base64Url.encode(options.challenge);
+        challenge = b64e(options.challenge);
 
   CollectedClientData.fromCredentialRequestOptions({
     required this.origin,
@@ -40,7 +41,7 @@ class CollectedClientData {
     required PublicKeyCredentialRequestOptions options,
   })  : type = 'webauthn.get',
         crossOrigin = !sameOriginWithAncestor,
-        challenge = base64Url.encode(options.challenge);
+        challenge = b64e(options.challenge);
 
   // TODO tokenBinding (and any other fields) need to be able to be serialized
   // into the "remainder" field. We need to update this to handle remainder
@@ -56,5 +57,5 @@ class CollectedClientData {
   List<int> _hash() => sha256.convert(_encode()).bytes;
   Uint8List hash() => Uint8List.fromList(_hash());
 
-  String hashBase64() => base64Url.encode(_hash());
+  String hashBase64() => b64e(_hash());
 }

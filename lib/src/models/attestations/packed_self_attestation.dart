@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cbor/cbor.dart';
 
 import '../attestation.dart';
+import '../../helpers/base64.dart';
 import '../../enums/attestation_type.dart';
 import '../../util/webauthn_cryptography.dart';
 
@@ -23,11 +24,11 @@ class PackedSelfAttestation extends Attestation {
   @override
   String asJSON() {
     return json.encode({
-      'authData': base64Url.encode(authData),
+      'authData': b64e(authData),
       'fmt': format,
       'attStmt': {
         'alg': WebauthnCrytography.signingAlgoId,
-        'sig': base64Url.encode(signature),
+        'sig': b64e(signature),
       },
     });
   }

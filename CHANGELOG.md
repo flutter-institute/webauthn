@@ -1,3 +1,10 @@
+## 0.2.0
+
+* Updating byte_extensions to 0.0.3 to fix broken keys
+* Base64 URL encoded strings no longer contain trailing '='
+* Adding helper methods base64Encode/Decode to WebAPI
+* Updating example app to use WebAPI.base64 helpers
+
 ## 0.1.0
 
 * Adding support for packed attestations when a new credential is created

@@ -1,5 +1,3 @@
-
-
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
@@ -64,7 +62,6 @@ void main() {
     when(mockLocalAuth.isDeviceSupported()).thenAnswer((_) async => true);
   });
 
-
   group('create credential options', () {
     late CreateCredentialOptions options;
 
@@ -81,7 +78,7 @@ void main() {
       expect(clientData.type, 'webauthn.create');
       expect(clientData.origin, equals('example.com'));
       expect(clientData.crossOrigin, equals(false));
-      expect(clientData.challenge, equals('AQIDBA=='));
+      expect(clientData.challenge, equals('AQIDBA'));
       expect(clientData.tokenBinding, isNull);
 
       expect(creds.clientDataHash, equals(clientData.hash()));
@@ -229,7 +226,7 @@ void main() {
       expect(clientData.type, 'webauthn.get');
       expect(clientData.origin, equals('example.com'));
       expect(clientData.crossOrigin, equals(false));
-      expect(clientData.challenge, equals('AQIDBA=='));
+      expect(clientData.challenge, equals('AQIDBA'));
       expect(clientData.tokenBinding, isNull);
 
       expect(creds.clientDataHash, equals(clientData.hash()));
