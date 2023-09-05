@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:webauthn/src/models/converters/uint8list_converter.dart';
+
+import 'converters/uint8list_converter.dart';
 
 part 'generated/assertion_response_data.g.dart';
 

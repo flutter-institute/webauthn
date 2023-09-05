@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cbor/cbor.dart';
 
 import '../attestation.dart';
+import '../../helpers/base64.dart';
 import '../../enums/attestation_type.dart';
 
 class NoneAttestation extends Attestation {
@@ -20,7 +21,7 @@ class NoneAttestation extends Attestation {
   @override
   String asJSON() {
     return json.encode({
-      'authData': base64Url.encode(authData),
+      'authData': b64e(authData),
       'fmt': format,
       'attStmt': {},
     });

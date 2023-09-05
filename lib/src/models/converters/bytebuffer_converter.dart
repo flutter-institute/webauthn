@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
@@ -10,8 +9,8 @@ class ByteBufferConverter extends JsonConverter<ByteBuffer, String> {
   const ByteBufferConverter();
 
   @override
-  ByteBuffer fromJson(String json) => base64Url.decode(padBase64(json)).buffer;
+  ByteBuffer fromJson(String json) => b64d(json).buffer;
 
   @override
-  String toJson(ByteBuffer object) => base64Url.encode(object.asInt8List());
+  String toJson(ByteBuffer object) => b64e(object.asInt8List());
 }

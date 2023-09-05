@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import '../enums/public_key_credential_type.dart';
+import '../helpers/base64.dart';
 import '../helpers/random.dart';
 import 'db.dart';
 import 'schema.dart';
@@ -92,7 +92,7 @@ class Credential extends SchemaObject {
     this.strongboxRequired,
   ) : super(null) {
     keyId = RandomHelper.nextBytes(32);
-    keyPairAlias = _keyPairPrefix + base64Url.encode(keyId.toList());
+    keyPairAlias = _keyPairPrefix + b64e(keyId.toList());
     keyUseCounter = 0;
   }
 
