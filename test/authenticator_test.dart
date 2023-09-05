@@ -184,7 +184,7 @@ void main() {
     validateAttestationMap(cborEncoded);
 
     final jsonEncoded = json.decode(attObj.asJSON());
-    jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
+    jsonEncoded['authData'] = WebAPI.base64Decode(jsonEncoded['authData']);
     validateAttestationMap(jsonEncoded);
 
     final credentialId = attObj.getCredentialId();
@@ -245,9 +245,9 @@ void main() {
     validateAttestationMap(cborEncoded);
 
     final jsonEncoded = json.decode(attObj.asJSON());
-    jsonEncoded['authData'] = base64.decode(jsonEncoded['authData']);
+    jsonEncoded['authData'] = WebAPI.base64Decode(jsonEncoded['authData']);
     jsonEncoded['attStmt']['sig'] =
-        base64.decode(jsonEncoded['attStmt']['sig']);
+        WebAPI.base64Decode(jsonEncoded['attStmt']['sig']);
     validateAttestationMap(jsonEncoded);
 
     final credentialId = attObj.getCredentialId();

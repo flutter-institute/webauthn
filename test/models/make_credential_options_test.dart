@@ -81,13 +81,13 @@ void main() {
           'credTypesAndPubKeyAlgs',
           'excludeCredentials',
         ]));
-    expect(json['clientDataHash'], equals('AQIDBAU='));
+    expect(json['clientDataHash'], equals('AQIDBAU'));
     expect(json['rp'],
         equals({'id': options.rpEntity.id, 'name': options.rpEntity.name}));
     expect(
         json['user'],
         equals({
-          'id': 'BgcICQA=',
+          'id': 'BgcICQA',
           'displayName': options.userEntity.displayName,
           'name': options.userEntity.name
         }));
