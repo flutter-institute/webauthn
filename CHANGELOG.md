@@ -1,3 +1,8 @@
+## 0.2.1
+
+* Updating dependencies to latest version except collections which is pinned by the sdk
+* Fixing a dart format issue
+
 ## 0.2.0
 
 * Updating byte_extensions to 0.0.3 to fix broken keys
