@@ -3,13 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "description": "Webauthn Test server",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js",
+    "cli": "node cli.js"
   },
   "author": "Brian Armstrong <brian@flutter.institute>",
   "license": "ISC",
   "dependencies": {
-    "fido2-lib": "^3.4.1"
+    "body-parser": "^1.20.2",
+    "ec-key": "^0.0.4",
+    "express": "^4.18.2",
+    "fido2-lib": "^3.4.1",
+    "nodemon": "^3.0.1"
   }
 }

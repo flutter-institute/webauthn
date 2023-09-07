@@ -43,5 +43,6 @@ dev_dependencies:
   json_serializable: ^6.5.3
   mockito: ^5.3.2
   sqflite_common_ffi: ^2.1.1+1
+  http: ^1.1.0
 
 flutter:

@@ -1,19 +1,9 @@
-const crypto = require('crypto');
-const { Fido2Lib } = require('fido2-lib');
 const readline = require('readline');
 
-const f2l = new Fido2Lib({
-    timeout: 600000,
-    rpId: 'example.com',
-    rpName: 'ACME',
-    rpIcon: 'https://example.com/logo.png',
-    challengeSize: 128,
-    attestation: 'none',
-    cryptoParams: [-7, -257],
-    authenticatorAttachment: 'platform',
-    authenticatorRequireResidentKey: false,
-    authenticatorUserVerification: 'discouraged', // set to "required" or "preferred" to make happen
-});
+const { bufferBase64 } = require('./lib/helpers');
+const WebauthnHandler = require('./lib/handler');
+
+const handler = new WebauthnHandler();
 
 async function prompt(query, numNewline = 1) {
     const rl = readline.createInterface({
@@ -47,13 +37,10 @@ async function prompt(query, numNewline = 1) {
 }
 
 async function doTestCreate() {
-    const rawUserId = crypto.randomBytes(32);
-    const userId = rawUserId.toString('base64url');
+    const registrationOptions = await handler.createAttestationOptions();
+    const userId = registrationOptions.user.id;
 
-    const registrationOptions = await f2l.attestationOptions();
-    
-
-    const challenge = Buffer.from(registrationOptions.challenge).toString('base64url');
+    const challenge = registrationOptions.challenge;
     const clientDataJson = {
         type: 'webauthn.create',
         origin: 'https://example.com',
@@ -93,29 +80,18 @@ async function doTestCreate() {
     const attestationJson = await prompt('Enter the Attestation Response JSON below followed by two empty lines:\n', 2);
     const attestation = JSON.parse(attestationJson);
 
-    attestation.origin = clientDataJson.origin;
-    attestation.rawId = Uint8Array.from(Buffer.from(attestation.rawId, 'base64url')).buffer;
-    attestation.response.clientDataJSON = clientData.buffer;
-
-    const attestationExpectations = {
-        challenge,
-        origin: clientDataJson.origin,
-        factor: "either",
-    };
-    
-    const attestationResult = await f2l.attestationResult(attestation, attestationExpectations);
+    const attestationResult = await handler.verifyAttestationResponse(userId, attestation);
 
     console.log('Success!');
     console.log('public key', attestationResult.authnrData.get('credentialPublicKeyJwk'));
     console.log('counter', attestationResult.authnrData.get('counter'));
     console.log('---------------------\n');
 
-    return [rawUserId, attestationResult];
+    return [userId, attestationResult];
 }
 
-async function doTestAssert([rawUserId, attestationResult]) {
-    // console.log('test assert', Buffer.from(attestationResult.authnrData.get('credId')).toString('base64url'));
-    const authnOptions = await f2l.assertionOptions();
+async function doTestAssert([userId, attestationResult]) {
+    const authnOptions = await handler.createAssertionOptions(userId);
 
     // TODO a method needs to be added to convert the assertion options
     // to a valid getAssertionOptions object
@@ -152,24 +128,11 @@ async function doTestAssert([rawUserId, attestationResult]) {
     const assertionJson = await prompt('Enter the Assertion Response JSON below followed by two empty lines:\n', 2);
     const assertion = JSON.parse(assertionJson);
 
-    assertion.rawId = Uint8Array.from(Buffer.from(assertion.rawId, 'base64')).buffer;
-    assertion.response.clientDataJSON = clientData.buffer;
-
-    const assertionExpectations = {
-        challenge,
-        origin: clientDataJson.origin,
-        factor: "either",
-        publicKey: attestationResult.authnrData.get('credentialPublicKeyPem'),
-        prevCounter: attestationResult.authnrData.get('counter'),
-        userHandle: rawUserId,
-        allowCredentials: getAssertionOptions.allowCredentialDescriptorList,
-    };
-
-    const authnResult = await f2l.assertionResult(assertion, assertionExpectations);
+    const authnResult = await handler.verifyAssertionResponse(userId, assertion);
 
     console.log('Success!');
-    console.log('signature', Buffer.from(authnResult.authnrData.get('sig')).toString('base64'));
-    console.log('counter', authnResult.authnrData.get('counter'));
+    console.log('signature', bufferBase64(authnResult.get('sig')));
+    console.log('counter', authnResult.get('counter'));
     console.log('---------------------\n');
     await prompt('Press enter to continue\n');
 }
