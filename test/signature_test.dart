@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:logger/logger.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:webauthn/src/db/credential.dart';
@@ -24,6 +25,8 @@ void main() {
   late MockCredentialSchema mockSchema;
   late MockFlutterSecureStorage mockSecureStorage;
   late MockLocalAuthentication mockLocalAuth;
+
+  final logger = Logger();
 
   Authenticator getSut({
     bool authenticationRequired = false,
@@ -128,13 +131,13 @@ void main() {
       const host = 'localhost:3000';
 
       for (var i = 0; i < 10; i++) {
-        print('Request $i');
+        logger.i('Request $i');
 
         // Attestation
         final makeResponse = await client.get(Uri.http(host, '/attestation'));
         final makeResponseBody = jsonDecode(makeResponse.body);
         expect(makeResponseBody['success'], isTrue);
-        print('options: ${makeResponseBody['options']}');
+        logger.d('options: ${makeResponseBody['options']}');
 
         final makeOptions = {
           'publicKey': makeResponseBody['options'],
@@ -145,8 +148,8 @@ void main() {
           CreateCredentialOptions.fromJson(makeOptions),
           true,
         );
-        print('makeOptions: $makeOptions');
-        print('clientDataHash: ${attClientData.hashBase64()}');
+        logger.d('makeOptions: $makeOptions');
+        logger.d('clientDataHash: ${attClientData.hashBase64()}');
 
         final userId = base64UrlEncode(makeCredOptions.userEntity.id);
 
@@ -154,11 +157,11 @@ void main() {
           makeCredOptions,
           attestationType: AttestationType.packed,
         );
-        print('attObj: ${attObj.asJSON()}');
+        logger.d('attObj: ${attObj.asJSON()}');
 
         final attestation =
             await api.createAttestationResponse(attClientData, attObj);
-        print('Attestation: ${attestation.toJson()}');
+        logger.d('Attestation: ${attestation.toJson()}');
 
         final attestationResult = await client.post(
           Uri.http(host, '/attestation', {'userId': userId}),
@@ -188,15 +191,15 @@ void main() {
             CredentialRequestOptions.fromJson(authOptions),
             true,
           );
-          print('getAssertOptions: $getAssertOptions');
-          print('clientDataHash: ${astClientData.hashBase64()}');
+          logger.d('getAssertOptions: $getAssertOptions');
+          logger.d('clientDataHash: ${astClientData.hashBase64()}');
 
           final astObj = await authenticator.getAssertion(getAssertOptions);
-          print('astObj: ${astObj.toJson()}');
+          logger.d('astObj: ${astObj.toJson()}');
 
           final assertion =
               await api.createAssertionResponse(astClientData, astObj);
-          print('Assertion: ${assertion.toJson()}');
+          logger.d('Assertion: ${assertion.toJson()}');
 
           final assertionResult = await client.post(
             assertUri,
