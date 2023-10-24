@@ -179,7 +179,6 @@ class Authenticator {
     // If we need to obtain user verification, prompt for that
     // Otherwise, just create the new attestation object
     Signer<PrivateKey>? signer;
-    late Attestation attestation;
     if (supportsUserVerifiation) {
       final reason = localizationOptions.localizedReason ??
           'Authenticate to create a new credential';
@@ -218,7 +217,7 @@ class Authenticator {
     }
 
     // Steps 9-13, with the optional signer
-    attestation = await _createAttestation(
+    final attestation = await _createAttestation(
         attestationType, options, credentialSource, signer);
 
     // We finish up Step 3 here by checking excludeFlag at the end (so we've still gotten

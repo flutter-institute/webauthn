@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:byte_extensions/byte_extensions.dart';
@@ -27,7 +28,7 @@ class WebauthnCrytography {
 
   /// Hash a string with SHA256
   static Uint8List sha256(String data) {
-    final hash = c.sha256.convert(data.codeUnits);
+    final hash = c.sha256.convert(utf8.encode(data));
     return Uint8List.fromList(hash.bytes);
   }
 

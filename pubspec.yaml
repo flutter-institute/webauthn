@@ -16,6 +16,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  asn1lib: ^1.5.0
   byte_extensions: ^0.0.3
   cbor: ^6.1.1
   collection: ^1.17.2
