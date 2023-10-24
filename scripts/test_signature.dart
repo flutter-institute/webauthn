@@ -159,14 +159,14 @@ void main(List<String> arguments) async {
   final dataHash = sha256.convert(dataJsonBytes).bytes;
   final dataJson = json.decode(utf8.decode(dataJsonBytes));
 
-  print('dataJson: $dataJson');
-  print('dataBytes: ${base64.encode(dataHash)}');
+  stdout.write('dataJson: $dataJson\n');
+  stdout.write('dataBytes: ${base64.encode(dataHash)}\n');
 
   final toSign = BytesBuilder()
     ..add(authDataBytes)
     ..add(dataHash);
 
-  print('toSign: ${base64.encode(toSign.toBytes())}');
+  stdout.write('toSign: ${base64.encode(toSign.toBytes())}\n');
 
   final pubKeyBytes = authData.credentialData!.publicKey;
   final keyData = cborDecode(pubKeyBytes) as CborMap;
@@ -178,7 +178,7 @@ void main(List<String> arguments) async {
   final pubKey =
       EcPublicKey(xCoordinate: xcoord, yCoordinate: ycoord, curve: curves.p256);
 
-  print('signature: ${base64.encode(statementData.sig)}');
+  stdout.write('signature: ${base64.encode(statementData.sig)}\n');
   final sigX = statementData.sig.sublist(4, 36);
   final sigY = statementData.sig.sublist(38, 70);
   var sigBytes = BytesBuilder()
@@ -186,13 +186,13 @@ void main(List<String> arguments) async {
     ..add(sigY);
 
   final pem = pemEncodePublicKey(encodePublicKey(xcoord, ycoord));
-  print(pem);
+  stdout.write('$pem\n');
 
   var verifier = pubKey.createVerifier(algorithms.signing.ecdsa.sha256);
   var isValid =
       verifier.verify(toSign.toBytes(), Signature(sigBytes.toBytes()));
 
-  print('isValid: $isValid');
+  stdout.write('isValid: $isValid\n');
 
   final tmpDir = Directory.systemTemp.createTempSync('keytest');
   final tmpData = File('${tmpDir.path}/data.bin');
@@ -214,10 +214,10 @@ void main(List<String> arguments) async {
   ]);
 
   if (openVerify.exitCode != 0) {
-    print('Openssl verify failed: ${openVerify.stderr}');
-    print(tmpDir.path);
+    stdout.write('Openssl verify failed: ${openVerify.stderr}\n');
+    stdout.write(tmpDir.path);
   } else {
-    print('Openssl verify succeeded: ${openVerify.stdout}');
+    stdout.write('Openssl verify succeeded: ${openVerify.stdout}\n');
     await tmpDir.delete(recursive: true);
   }
 
