@@ -28,7 +28,7 @@ class Authenticator {
   // Allow external referednces
   static const shaLength = c.shaLength;
   static const authenticationDataLength = c.authenticationDataLength;
-  static const signatureDataLength = c.signatureDataLength;
+  static const minSignatureDataLength = c.minSignatureDataLength;
 
   // ignore: constant_identifier_names
   static const ES256_COSE = CredTypePubKeyAlgoPair(
@@ -468,7 +468,7 @@ class Authenticator {
         privateKey: privateKey, signer: signer);
 
     // Sanity check on signature
-    assert(signatureBytes.length == signatureDataLength);
+    assert(signatureBytes.length >= minSignatureDataLength);
 
     switch (attestationType) {
       case AttestationType.none:

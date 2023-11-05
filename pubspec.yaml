@@ -21,7 +21,7 @@ dependencies:
   cbor: ^6.1.1
   collection: ^1.17.2
   crypto: ^3.0.3
-  crypto_keys: ^0.3.0
+  crypto_keys: ^0.3.0+1
   equatable: ^2.0.5
   flutter_secure_storage: ^9.0.0
   hex: ^0.2.0
