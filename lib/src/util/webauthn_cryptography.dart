@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:byte_extensions/byte_extensions.dart';
@@ -27,18 +28,29 @@ class WebauthnCrytography {
 
   /// Hash a string with SHA256
   static Uint8List sha256(String data) {
-    final hash = c.sha256.convert(data.codeUnits);
+    final hash = c.sha256.convert(utf8.encode(data));
     return Uint8List.fromList(hash.bytes);
   }
 
   /// Convert a crypto_keys signature to DER format
   static Uint8List signatureToDER(Uint8List sig) {
+    List<int> r = sig.sublist(0, 0x20);
+    List<int> s = sig.sublist(0x20);
+
+    // If the MSB of either digit is 1, prefix with 0x00
+    if (r[0] >= 0x80) {
+      r = [0x00, ...r];
+    }
+    if (s[0] >= 0x80) {
+      s = [0x00, ...s];
+    }
+
     final der = BytesBuilder()
-      ..add([0x30, 0x44]) // SEQUENCE (68 bytes)
-      ..add([0x02, 0x20]) // INTEGER (32 bytes)
-      ..add(sig.sublist(0, 0x20)) // sig.r
-      ..add([0x02, 0x20]) // INTEGER (32 bytes)
-      ..add(sig.sublist(0x20)); // sig.s
+      ..add([0x30, r.length + s.length + 4]) // SEQUENCE (>=68 bytes)
+      ..add([0x02, r.length]) // INTEGER (32/33 bytes)
+      ..add(r) // sig.r
+      ..add([0x02, s.length]) // INTEGER (32/33 bytes)
+      ..add(s); // sig.s
     return der.toBytes();
   }
 
@@ -59,8 +71,8 @@ class WebauthnCrytography {
     final second = secondBytes.asBigInt();
 
     final result = BytesBuilder()
-      ..add(first.asBytes())
-      ..add(second.asBytes());
+      ..add(first.asBytes(maxBytes: 32))
+      ..add(second.asBytes(maxBytes: 32));
     return result.toBytes();
   }
 

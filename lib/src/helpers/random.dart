@@ -12,12 +12,6 @@ class RandomHelper {
     return result;
   }
 
-  static Uint8List nextBytes(int length) {
-    final bytes = <int>[];
-    for (var i = 0; i < length; i++) {
-      bytes.add(_random.nextInt(256));
-    }
-
-    return Uint8List.fromList(bytes);
-  }
+  static Uint8List nextBytes(int length) =>
+      Uint8List.fromList(List.generate(length, (_) => _random.nextInt(256)));
 }

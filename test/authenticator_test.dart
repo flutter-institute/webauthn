@@ -238,7 +238,8 @@ void main() {
       expect(attStmt['alg'].toString(),
           equals(WebauthnCrytography.signingAlgoId.toString()));
       expect(attStmt, contains('sig'));
-      expect(attStmt['sig'] as List, hasLength(signatureDataLength));
+      expect((attStmt['sig'] as List).length,
+          inInclusiveRange(minSignatureDataLength, minSignatureDataLength + 2));
     }
 
     final cborEncoded = cbor.decode(attObj.asCBOR()) as Map;
