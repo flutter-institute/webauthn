@@ -1,3 +1,9 @@
+## 0.2.2
+
+* Fixing the DER serialization of signature data to ensure values are treated as positive integers
+* Fixing sha256 hash to use UTF8 instead of UTF16
+* Updating crypto_keys to latest version
+
 ## 0.2.1
 
 * Updating dependencies to latest version except collections which is pinned by the sdk
