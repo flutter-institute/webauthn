@@ -236,7 +236,7 @@ void main() {
       final attStmt = data['attStmt'] as Map;
       expect(attStmt, contains('alg'));
       expect(attStmt['alg'].toString(),
-          equals(WebauthnCrytography.signingAlgoId.toString()));
+          equals(WebauthnCryptography.signingAlgoId.toString()));
       expect(attStmt, contains('sig'));
       expect((attStmt['sig'] as List).length,
           inInclusiveRange(minSignatureDataLength, minSignatureDataLength + 2));

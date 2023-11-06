@@ -65,13 +65,13 @@ class WebAPI {
       credTypesAndPubKeyAlgs = [
         const CredTypePubKeyAlgoPair(
           credType: PublicKeyCredentialType.publicKey,
-          pubKeyAlgo: WebauthnCrytography.signingAlgoId,
+          pubKeyAlgo: WebauthnCryptography.signingAlgoId,
         ),
       ];
     } else {
       credTypesAndPubKeyAlgs = pkOptions.pubKeyCredParams
           .where((e) =>
-              e.alg == WebauthnCrytography.signingAlgoId &&
+              e.alg == WebauthnCryptography.signingAlgoId &&
               e.type == PublicKeyCredentialType.publicKey)
           .map((e) => e.toAlgoPair())
           .toList();

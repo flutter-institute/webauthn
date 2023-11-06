@@ -54,7 +54,7 @@ final signatureOpenSSL = ui(HEX.decode(testSignatureOpenSSL));
 final signatureDER = ui(HEX.decode(testSignatureDER));
 
 void main() {
-  const sut = WebauthnCrytography();
+  const sut = WebauthnCryptography();
 
   group('verification', () {
     test('verifies external signature correctly', () {
@@ -86,14 +86,14 @@ void main() {
 
   group('transformations', () {
     test('transforms an openssl signature to a crypto_keys signature', () {
-      final localKey = WebauthnCrytography.DERToSignature(signatureOpenSSL);
+      final localKey = WebauthnCryptography.DERToSignature(signatureOpenSSL);
       expect(localKey, equals(signatureCryptoKeys));
     });
 
     test(
       'transforms an invalid DER signature to a crypto_keys signature',
       () {
-        final localKey = WebauthnCrytography.DERToSignature(signatureDER);
+        final localKey = WebauthnCryptography.DERToSignature(signatureDER);
         expect(localKey, equals(signatureCryptoKeys));
       },
     );
@@ -102,7 +102,7 @@ void main() {
       'transforms a crypto_keys signature to a DER signature',
       () {
         final remoteKey =
-            WebauthnCrytography.signatureToDER(signatureCryptoKeys);
+            WebauthnCryptography.signatureToDER(signatureCryptoKeys);
         expect(remoteKey, equals(signatureOpenSSL));
       },
     );
@@ -110,7 +110,7 @@ void main() {
 
   group('hashing', () {
     test('sha256', () {
-      final bits = WebauthnCrytography.sha256("testing");
+      final bits = WebauthnCryptography.sha256("testing");
       final encoded = HEX.encode(bits.toList());
       expect(
           encoded,

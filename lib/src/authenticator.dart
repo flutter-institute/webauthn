@@ -25,7 +25,7 @@ import 'util/credential_safe.dart';
 import 'util/webauthn_cryptography.dart';
 
 class Authenticator {
-  // Allow external referednces
+  // Allow external references
   static const shaLength = c.shaLength;
   static const authenticationDataLength = c.authenticationDataLength;
   static const minSignatureDataLength = c.minSignatureDataLength;
@@ -33,7 +33,7 @@ class Authenticator {
   // ignore: constant_identifier_names
   static const ES256_COSE = CredTypePubKeyAlgoPair(
     credType: PublicKeyCredentialType.publicKey,
-    pubKeyAlgo: WebauthnCrytography.signingAlgoId,
+    pubKeyAlgo: WebauthnCryptography.signingAlgoId,
   );
 
   /// Create a new instance of the Authenticator.
@@ -51,9 +51,9 @@ class Authenticator {
     this.authenticationRequired,
     bool strongboxRequired, {
     CredentialSafe? credentialSafe,
-    WebauthnCrytography? cryptography,
+    WebauthnCryptography? cryptography,
     LocalAuthentication? localAuth,
-  })  : _crypto = cryptography ?? const WebauthnCrytography(),
+  })  : _crypto = cryptography ?? const WebauthnCryptography(),
         _credentialSafe = credentialSafe ??
             CredentialSafe(
               authenticationRequired: authenticationRequired,
@@ -64,7 +64,7 @@ class Authenticator {
 
   final bool authenticationRequired;
   final CredentialSafe _credentialSafe;
-  final WebauthnCrytography _crypto;
+  final WebauthnCryptography _crypto;
   final LocalAuthentication _localAuth;
 
   final Logger _logger = Logger();
@@ -77,7 +77,7 @@ class Authenticator {
 
   /// The crypto handling functinality
   @visibleForTesting
-  WebauthnCrytography get crytography {
+  WebauthnCryptography get crytography {
     return _crypto;
   }
 
@@ -213,7 +213,7 @@ class Authenticator {
       if (keyPair == null) {
         throw KeyPairNotFound(credentialSource.keyPairAlias);
       }
-      signer = WebauthnCrytography.createSigner(keyPair.privateKey!);
+      signer = WebauthnCryptography.createSigner(keyPair.privateKey!);
     }
 
     // Steps 9-13, with the optional signer
@@ -343,7 +343,7 @@ class Authenticator {
       if (keyPair == null) {
         throw KeyPairNotFound(selectedCredential.keyPairAlias);
       }
-      signer = WebauthnCrytography.createSigner(keyPair.privateKey!);
+      signer = WebauthnCryptography.createSigner(keyPair.privateKey!);
     }
 
     // Step 8-13
@@ -366,7 +366,7 @@ class Authenticator {
     assert(attestedCredentialData.length == 127);
 
     // Step 12: Create authenticatorData byte array
-    final rpIdHash = WebauthnCrytography.sha256(options.rpEntity.id);
+    final rpIdHash = WebauthnCryptography.sha256(options.rpEntity.id);
     final authenticatorData = await _constructAuthenticatorData(
         rpIdHash, attestedCredentialData, 0); // 164 bytes
     assert(authenticatorData.length == authenticationDataLength);
@@ -491,7 +491,7 @@ class Authenticator {
           await _credentialSafe.incrementCredentialUseCounter(credential);
 
       // Step 10: Constructor authenticator data
-      final rpIdHash = WebauthnCrytography.sha256(options.rpId);
+      final rpIdHash = WebauthnCryptography.sha256(options.rpId);
       authenticatorData =
           await _constructAuthenticatorData(rpIdHash, null, authCounter);
 
