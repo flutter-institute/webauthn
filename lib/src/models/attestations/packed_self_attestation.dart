@@ -27,7 +27,7 @@ class PackedSelfAttestation extends Attestation {
       'authData': b64e(authData),
       'fmt': format,
       'attStmt': {
-        'alg': WebauthnCrytography.signingAlgoId,
+        'alg': WebauthnCryptography.signingAlgoId,
         'sig': b64e(signature),
       },
     });
@@ -42,7 +42,7 @@ class PackedSelfAttestation extends Attestation {
       CborString('authData'): CborBytes(authData),
       CborString('fmt'): CborString(format),
       CborString('attStmt'): CborMap({
-        CborString('alg'): CborValue(WebauthnCrytography.signingAlgoId),
+        CborString('alg'): CborValue(WebauthnCryptography.signingAlgoId),
         CborString('sig'): CborBytes(signature),
       }),
     }));

@@ -7,13 +7,13 @@ import 'package:crypto_keys/crypto_keys.dart';
 
 import '../exceptions.dart';
 
-class WebauthnCrytography {
+class WebauthnCryptography {
   static final signingAlgo = algorithms.signing.ecdsa.sha256;
   static const signingAlgoId = -7;
   static final keyCurve = curves.p256;
   static const keyCurveId = 1;
 
-  const WebauthnCrytography();
+  const WebauthnCryptography();
 
   /// Generate a signer to be unlocked via biometric prompt (where available)
   /// This signature object should be passed down to [performSignature].
@@ -93,7 +93,7 @@ class WebauthnCrytography {
     return signatureToDER(signer.sign(data.toList()).data);
   }
 
-  /// Verifty that [signature] matches the [data] with the given [publicKey].
+  /// Verify that [signature] matches the [data] with the given [publicKey].
   bool verifySignature(
       PublicKey publicKey, Uint8List data, Uint8List signature) {
     final verifier = createVerifier(publicKey);

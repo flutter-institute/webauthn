@@ -42,7 +42,7 @@ class CredentialSafe {
 
   /// Generate a new ES256 KeyPair and store it to our secure storage using the given alias
   Future<KeyPair> _generateNewES256KeyPair(String alias) async {
-    final keypair = KeyPair.generateEc(WebauthnCrytography.keyCurve);
+    final keypair = KeyPair.generateEc(WebauthnCryptography.keyCurve);
     final pk = keypair.privateKey as EcPrivateKey;
     final pub = keypair.publicKey as EcPublicKey;
 
@@ -70,7 +70,7 @@ class CredentialSafe {
       final eccPrivateKey = cborList[0].toObject() as BigInt;
       final pk = EcPrivateKey(
         eccPrivateKey: eccPrivateKey,
-        curve: WebauthnCrytography.keyCurve,
+        curve: WebauthnCryptography.keyCurve,
       );
 
       final xCoordinate = cborList[1].toObject() as BigInt;
@@ -78,7 +78,7 @@ class CredentialSafe {
       final pub = EcPublicKey(
         xCoordinate: xCoordinate,
         yCoordinate: yCoordinate,
-        curve: WebauthnCrytography.keyCurve,
+        curve: WebauthnCryptography.keyCurve,
       );
 
       return KeyPair(publicKey: pub, privateKey: pk);
@@ -162,9 +162,9 @@ class CredentialSafe {
     final encoded = cbor.encode(CborMap({
       const CborSmallInt(1): const CborSmallInt(2), // kty: ECS key type
       const CborSmallInt(3): const CborSmallInt(
-          WebauthnCrytography.signingAlgoId), // alg: ES256 sig algorithm
+          WebauthnCryptography.signingAlgoId), // alg: ES256 sig algorithm
       const CborSmallInt(-1): const CborSmallInt(
-          WebauthnCrytography.keyCurveId), // crv: P-256 curve
+          WebauthnCryptography.keyCurveId), // crv: P-256 curve
       const CborSmallInt(-2): CborBytes(xCoord), // x-coord
       const CborSmallInt(-3): CborBytes(yCoord), // y-coord
     }));
