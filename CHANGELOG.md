@@ -1,4 +1,4 @@
-## 0.2.2+1
+## 0.2.3
 
 * Fixing typos in some comments.
 * Fixing spelling of WebauthnCryptography.
