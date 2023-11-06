@@ -1,3 +1,8 @@
+## 0.2.2+1
+
+* Fixing typos in some comments.
+* Fixing spelling of WebauthnCryptography.
+
 ## 0.2.2
 
 * Fixing the DER serialization of signature data to ensure values are treated as positive integers
