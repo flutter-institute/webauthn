@@ -11,8 +11,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:webauthn/src/constants.dart';
 import 'package:webauthn/src/db/credential.dart';
-import 'package:webauthn/src/util/credential_safe.dart';
-import 'package:webauthn/src/util/webauthn_cryptography.dart';
 import 'package:webauthn/webauthn.dart';
 
 import 'authenticator_test.mocks.dart';
