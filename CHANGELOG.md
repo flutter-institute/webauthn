@@ -1,3 +1,7 @@
+## 0.2.5
+
+* Adding the credential_safe and webauthn_cryptography utils to the exports so they can be overwritten
+
 ## 0.2.4
 
 * Updating dependencies to remove remove local_auth_ios in favor of local_auth_darwin

@@ -12,6 +12,10 @@ export 'src/enums/public_key_credential_type.dart';
 export 'src/models/assertion.dart';
 export 'src/models/attestation.dart';
 
+// Util classes for dependencies
+export 'src/util/credential_safe.dart';
+export 'src/util/webauthn_cryptography.dart';
+
 // Models for handling Web API translation
 export 'src/models/public_key_credential_parameters.dart';
 export 'src/models/create_credential_options.dart';
