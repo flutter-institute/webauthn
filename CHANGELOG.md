@@ -1,10 +1,16 @@
+## 0.3.0
+
+* Min Flutter Version 3.35
+* Min Dart SDK Version 3.9
+* Major dependency upgrades
+
 ## 0.2.5
 
 * Adding the credential_safe and webauthn_cryptography utils to the exports so they can be overwritten
 
 ## 0.2.4
 
-* Updating dependencies to remove remove local_auth_ios in favor of local_auth_darwin
+* Updating dependencies to remove local_auth_ios in favor of local_auth_darwin
 
 ## 0.2.3
 

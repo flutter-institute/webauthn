@@ -9,11 +9,10 @@ part of '../credential_request_options.dart';
 CredentialRequestOptions _$CredentialRequestOptionsFromJson(Map json) =>
     CredentialRequestOptions(
       publicKey: PublicKeyCredentialRequestOptions.fromJson(
-          Map<String, dynamic>.from(json['publicKey'] as Map)),
+        Map<String, dynamic>.from(json['publicKey'] as Map),
+      ),
     );
 
 Map<String, dynamic> _$CredentialRequestOptionsToJson(
-        CredentialRequestOptions instance) =>
-    <String, dynamic>{
-      'publicKey': instance.publicKey.toJson(),
-    };
+  CredentialRequestOptions instance,
+) => <String, dynamic>{'publicKey': instance.publicKey.toJson()};

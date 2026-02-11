@@ -7,9 +7,9 @@ part of '../token_binding.dart';
 // **************************************************************************
 
 TokenBinding _$TokenBindingFromJson(Map json) => TokenBinding(
-      status: $enumDecode(_$TokenBindingStatusEnumMap, json['status']),
-      id: json['id'] as String?,
-    );
+  status: $enumDecode(_$TokenBindingStatusEnumMap, json['status']),
+  id: json['id'] as String?,
+);
 
 Map<String, dynamic> _$TokenBindingToJson(TokenBinding instance) =>
     <String, dynamic>{

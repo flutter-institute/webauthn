@@ -2,13 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webauthn/webauthn.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  if (Platform.isWindows || Platform.isLinux) {
+  if (kIsWeb) {
+    // Change default factory on the web
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+  else if (Platform.isWindows || Platform.isLinux) {
     // Initialize FFI
     sqfliteFfiInit();
 
@@ -88,7 +94,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _auth = Authenticator(true, false);
+  final _auth = Authenticator(!kIsWeb, false);
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _optionsController = TextEditingController();

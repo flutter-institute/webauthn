@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:byte_extensions/byte_extensions.dart';
 import 'package:cbor/cbor.dart';
 import 'package:crypto_keys/crypto_keys.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -35,6 +36,9 @@ class CredentialSafe {
 
   Future<bool> supportsUserVerification() async {
     if (authenticationRequired) {
+      if (kIsWeb) {
+        return false;
+      }
       return await _localAuth.isDeviceSupported();
     }
     return false;

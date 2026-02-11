@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import '../enums/public_key_credential_type.dart';
 import '../helpers/base64.dart';
 import '../helpers/random.dart';
-import 'db.dart';
 import 'schema.dart';
 
 const _keyPairPrefix = "webauthn-prefix-";
@@ -141,7 +140,7 @@ class Credential extends SchemaObject {
 }
 
 class CredentialSchema extends DBSchema<Credential> {
-  CredentialSchema([DB? db]) : super(db);
+  CredentialSchema([super.db]);
 
   @override
   Future<Credential> insert(Credential data) async {

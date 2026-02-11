@@ -32,6 +32,15 @@ android {
 }
 ```
 
+### Setup for web
+
+There is some special setup for our database sqlflite_ffi handling for web. See [the setup guide](https://github.com/tekartik/sqflite/tree/master/packages_web/sqflite_common_ffi_web#setup-binaries) for additional steps.
+
+For a basic setup, just run:
+```
+dart run sqflite_common_ffi_web:setup
+```
+
 ### File generation
 
 This project uses [code generated libraries](https://docs.flutter.dev/development/data-and-backend/json#serializing-json-using-code-generation-libraries) for JSON handling with classes, and for unit tests mocks.

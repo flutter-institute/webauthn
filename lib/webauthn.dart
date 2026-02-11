@@ -1,4 +1,4 @@
-library webauthn;
+library;
 
 // TODO update our exceptions to match with the "error code equivalent" in the specs
 
